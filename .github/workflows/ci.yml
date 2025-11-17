@@ -36,7 +36,7 @@ jobs:
           path: |
             frontend/.eslintcache
             backend/.eslintcache
-          key: ${{ runner.os }}-eslint-${{ hashFiles('frontend/.eslintrc.js') }}-${{ hashFiles('backend/.eslintrc.js') }}-${{ hashFiles('frontend/**/*.ts') }}-${{ hashFiles('frontend/**/*.tsx') }}-${{ hashFiles('backend/**/*.ts') }}
+          key: ${{ runner.os }}-eslint-${{ hashFiles('frontend/.eslintrc.cjs') }}-${{ hashFiles('backend/.eslintrc.cjs') }}-${{ hashFiles('frontend/**/*.ts') }}-${{ hashFiles('frontend/**/*.tsx') }}-${{ hashFiles('backend/**/*.ts') }}
           restore-keys: |
             ${{ runner.os }}-eslint-
 
@@ -50,12 +50,12 @@ jobs:
 
       - name: Run ESLint on frontend
         working-directory: ./frontend
-        run: npx eslint . --ext ts,tsx --cache --cache-location .eslintcache --report-unused-disable-directives --max-warnings 0
+        run: npm run lint
         continue-on-error: false
 
       - name: Run ESLint on backend
         working-directory: ./backend
-        run: npx eslint . --ext ts --cache --cache-location .eslintcache --report-unused-disable-directives --max-warnings 0
+        run: npm run lint
         continue-on-error: false
 
   format-check:
