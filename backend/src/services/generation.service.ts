@@ -2,4 +2,3 @@
 export class GenerationService {
   // TODO: Implement generation business logic
 }
-
