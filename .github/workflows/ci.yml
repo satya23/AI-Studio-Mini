@@ -19,7 +19,16 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
+
+      - name: Cache node modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            frontend/node_modules
+            backend/node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('frontend/package.json') }}-${{ hashFiles('backend/package.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
 
       - name: Cache ESLint
         uses: actions/cache@v4
@@ -33,11 +42,11 @@ jobs:
 
       - name: Install frontend dependencies
         working-directory: ./frontend
-        run: npm ci
+        run: npm install --frozen-lockfile || npm install
 
       - name: Install backend dependencies
         working-directory: ./backend
-        run: npm ci
+        run: npm install --frozen-lockfile || npm install
 
       - name: Run ESLint on frontend
         working-directory: ./frontend
@@ -61,15 +70,24 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
+
+      - name: Cache node modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            frontend/node_modules
+            backend/node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('frontend/package.json') }}-${{ hashFiles('backend/package.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
 
       - name: Install frontend dependencies
         working-directory: ./frontend
-        run: npm ci
+        run: npm install --frozen-lockfile || npm install
 
       - name: Install backend dependencies
         working-directory: ./backend
-        run: npm ci
+        run: npm install --frozen-lockfile || npm install
 
       - name: Check frontend formatting
         working-directory: ./frontend
@@ -93,11 +111,18 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
+
+      - name: Cache node modules
+        uses: actions/cache@v4
+        with:
+          path: frontend/node_modules
+          key: ${{ runner.os }}-node-frontend-${{ hashFiles('frontend/package.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-frontend-
 
       - name: Install dependencies
         working-directory: ./frontend
-        run: npm ci
+        run: npm install --frozen-lockfile || npm install
 
       - name: Run tests
         working-directory: ./frontend
@@ -130,11 +155,18 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
+
+      - name: Cache node modules
+        uses: actions/cache@v4
+        with:
+          path: backend/node_modules
+          key: ${{ runner.os }}-node-backend-${{ hashFiles('backend/package.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-backend-
 
       - name: Install dependencies
         working-directory: ./backend
-        run: npm ci
+        run: npm install --frozen-lockfile || npm install
 
       - name: Run tests
         working-directory: ./backend
@@ -168,15 +200,24 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
+
+      - name: Cache node modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            frontend/node_modules
+            backend/node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('frontend/package.json') }}-${{ hashFiles('backend/package.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
 
       - name: Install frontend dependencies
         working-directory: ./frontend
-        run: npm ci
+        run: npm install --frozen-lockfile || npm install
 
       - name: Install backend dependencies
         working-directory: ./backend
-        run: npm ci
+        run: npm install --frozen-lockfile || npm install
 
       - name: Build frontend
         working-directory: ./frontend
