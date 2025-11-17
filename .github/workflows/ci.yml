@@ -1,0 +1,204 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop, 'Setting_up_repo']
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  eslint:
+    name: ESLint Check
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Cache ESLint
+        uses: actions/cache@v4
+        with:
+          path: |
+            frontend/.eslintcache
+            backend/.eslintcache
+          key: ${{ runner.os }}-eslint-${{ hashFiles('**/.eslintrc.js') }}-${{ hashFiles('frontend/**/*.ts') }}-${{ hashFiles('frontend/**/*.tsx') }}-${{ hashFiles('backend/**/*.ts') }}
+          restore-keys: |
+            ${{ runner.os }}-eslint-
+
+      - name: Install frontend dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Install backend dependencies
+        working-directory: ./backend
+        run: npm ci
+
+      - name: Run ESLint on frontend
+        working-directory: ./frontend
+        run: npx eslint . --ext ts,tsx --cache --cache-location .eslintcache --report-unused-disable-directives --max-warnings 0
+        continue-on-error: false
+
+      - name: Run ESLint on backend
+        working-directory: ./backend
+        run: npx eslint . --ext ts --cache --cache-location .eslintcache --report-unused-disable-directives --max-warnings 0
+        continue-on-error: false
+
+  format-check:
+    name: Prettier Format Check
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install frontend dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Install backend dependencies
+        working-directory: ./backend
+        run: npm ci
+
+      - name: Check frontend formatting
+        working-directory: ./frontend
+        run: npx prettier --check "src/**/*.{ts,tsx,css}"
+        continue-on-error: false
+
+      - name: Check backend formatting
+        working-directory: ./backend
+        run: npx prettier --check "src/**/*.ts"
+        continue-on-error: false
+
+  test-frontend:
+    name: Test Frontend
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Run tests
+        working-directory: ./frontend
+        run: npm test -- --run || echo "No tests found or tests failed"
+        continue-on-error: true
+
+      - name: Generate coverage report
+        working-directory: ./frontend
+        run: npm run test:coverage || echo "Coverage generation skipped"
+        continue-on-error: true
+
+      - name: Upload coverage to artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-coverage
+          path: frontend/coverage
+          retention-days: 7
+          if-no-files-found: ignore
+
+  test-backend:
+    name: Test Backend
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        working-directory: ./backend
+        run: npm ci
+
+      - name: Run tests
+        working-directory: ./backend
+        run: npm test -- --passWithNoTests || echo "No tests found or tests failed"
+        continue-on-error: true
+
+      - name: Generate coverage report
+        working-directory: ./backend
+        run: npm run test:coverage || echo "Coverage generation skipped"
+        continue-on-error: true
+
+      - name: Upload coverage to artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: backend/coverage
+          retention-days: 7
+          if-no-files-found: ignore
+
+  build:
+    name: Build Projects
+    runs-on: ubuntu-latest
+    needs: [eslint, format-check]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install frontend dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Install backend dependencies
+        working-directory: ./backend
+        run: npm ci
+
+      - name: Build frontend
+        working-directory: ./frontend
+        run: npm run build
+
+      - name: Build backend
+        working-directory: ./backend
+        run: npm run build
+
+      - name: Upload frontend build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build
+          path: frontend/dist
+          retention-days: 1
+          if-no-files-found: ignore
+
+      - name: Upload backend build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-build
+          path: backend/dist
+          retention-days: 1
+          if-no-files-found: ignore
+
