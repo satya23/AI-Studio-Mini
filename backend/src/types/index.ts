@@ -15,4 +15,3 @@ export interface Generation {
   status: 'pending' | 'completed' | 'failed';
   createdAt: Date;
 }
-

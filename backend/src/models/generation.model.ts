@@ -2,4 +2,3 @@
 export class GenerationModel {
   // TODO: Implement generation database operations
 }
-
