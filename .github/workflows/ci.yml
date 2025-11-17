@@ -36,7 +36,7 @@ jobs:
           path: |
             frontend/.eslintcache
             backend/.eslintcache
-          key: ${{ runner.os }}-eslint-${{ hashFiles('**/.eslintrc.js') }}-${{ hashFiles('frontend/**/*.ts') }}-${{ hashFiles('frontend/**/*.tsx') }}-${{ hashFiles('backend/**/*.ts') }}
+          key: ${{ runner.os }}-eslint-${{ hashFiles('frontend/.eslintrc.js') }}-${{ hashFiles('backend/.eslintrc.js') }}-${{ hashFiles('frontend/**/*.ts') }}-${{ hashFiles('frontend/**/*.tsx') }}-${{ hashFiles('backend/**/*.ts') }}
           restore-keys: |
             ${{ runner.os }}-eslint-
 

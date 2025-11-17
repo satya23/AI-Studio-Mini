@@ -11,7 +11,7 @@
 | Unit tests backend | ⏳ | /backend/tests/auth.test.ts |
 | Unit tests frontend | ⏳ | /frontend/tests/Generate.test.tsx |
 | E2E flow | ⏳ | /tests/e2e.spec.ts |
-| ESLint + Prettier configured | ✅ | .eslintrc.js |
+| ESLint + Prettier configured | ✅ | frontend/.eslintrc.js, backend/.eslintrc.js |
 | CI + Coverage report | ⏳ | .github/workflows/ci.yml |
 
 **Legend:**

@@ -7,11 +7,12 @@ function App() {
         </div>
       </header>
       <main className="max-w-7xl mx-auto px-4 py-8">
-        <p className="text-gray-600">Project setup complete. Ready for development.</p>
+        <p className="text-gray-600">
+          Project setup complete. Ready for development.
+        </p>
       </main>
     </div>
   );
 }
 
 export default App;
-
