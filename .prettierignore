@@ -1,0 +1,11 @@
+node_modules
+dist
+build
+coverage
+*.db
+*.sqlite
+*.sqlite3
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
