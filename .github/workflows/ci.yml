@@ -289,7 +289,7 @@ jobs:
         run: npm install --frozen-lockfile || npm install
 
       - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install --with-deps
 
       - name: Build frontend
         working-directory: ./frontend
