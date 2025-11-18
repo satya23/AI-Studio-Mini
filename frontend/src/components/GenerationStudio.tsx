@@ -171,12 +171,12 @@ export default function GenerationStudio() {
           setRetryCount(0);
           abortControllerRef.current = null;
         }
-    } else {
-      setIsGenerating(false);
-      setError('Failed to generate image. Please try again.');
-      setRetryCount(0);
-      abortControllerRef.current = null;
-    }
+      } else {
+        setIsGenerating(false);
+        setError('Failed to generate image. Please try again.');
+        setRetryCount(0);
+        abortControllerRef.current = null;
+      }
     }
   };
 
