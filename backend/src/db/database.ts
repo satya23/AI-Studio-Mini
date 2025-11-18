@@ -1,6 +1,7 @@
 import Database from 'better-sqlite3';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { mkdirSync } from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -11,6 +12,12 @@ const dbPath =
     ? ':memory:'
     : process.env.DATABASE_PATH ||
       path.join(__dirname, '../../data/database.db');
+
+// Ensure the directory exists for file-based databases
+if (dbPath !== ':memory:') {
+  const dbDir = path.dirname(dbPath);
+  mkdirSync(dbDir, { recursive: true });
+}
 
 // Create database instance
 const dbInstance = new Database(dbPath);
