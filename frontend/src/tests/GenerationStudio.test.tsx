@@ -631,13 +631,17 @@ describe('GenerationStudio Component', () => {
     );
 
     // Wait for abort button to appear (it should be visible during retry)
-    const abortButton = await waitFor(
-      () => screen.getByRole('button', { name: /abort/i }),
+    await waitFor(
+      () => {
+        expect(
+          screen.getByRole('button', { name: /abort/i })
+        ).toBeInTheDocument();
+      },
       { timeout: 2000 }
     );
 
     await act(async () => {
-      await user.click(abortButton);
+      await user.click(screen.getByRole('button', { name: /abort/i }));
     });
 
     // Should show abort message (could be "Generation aborted" or abbreviated)
