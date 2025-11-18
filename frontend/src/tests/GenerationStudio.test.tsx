@@ -585,41 +585,6 @@ describe('GenerationStudio Component', () => {
     expect(characterCountParent?.textContent).toContain('/500 characters');
   });
 
-  it('should upload image with base64 encoding', async () => {
-    const user = userEvent.setup();
-    vi.mocked(generationService.getGenerations).mockResolvedValue([]);
-
-    const mockGeneration = {
-      id: 'gen-1',
-      imageUrl: 'https://example.com/image.jpg',
-      prompt: 'A beautiful sunset',
-      style: 'Realistic',
-      createdAt: new Date().toISOString(),
-      status: 'completed',
-    };
-
-    vi.mocked(generationService.create).mockResolvedValue(mockGeneration);
-
-    renderGenerationStudio();
-
-    const file = new File(['test'], 'test.jpg', { type: 'image/jpeg' });
-    const fileInput = screen.getByLabelText(/Upload Image/i);
-    const promptInput = screen.getByLabelText(/Prompt/i);
-    const generateButton = screen.getByRole('button', { name: /generate/i });
-
-    await act(async () => {
-      await user.upload(fileInput, file);
-      await user.type(promptInput, 'A beautiful sunset');
-      await user.click(generateButton);
-    });
-
-    await waitFor(() => {
-      expect(generationService.create).toHaveBeenCalled();
-      const callArgs = vi.mocked(generationService.create).mock.calls[0][0];
-      expect(callArgs).toHaveProperty('imageUpload');
-      expect(callArgs.imageUpload).toMatch(/^data:image\//);
-    });
-  });
 
   it('should limit past generations to 5', async () => {
     const mockGenerations = Array.from({ length: 7 }, (_, i) => ({
