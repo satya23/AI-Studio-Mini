@@ -1,3 +1,4 @@
+/// <reference types="jest" />
 import { AuthService } from '../src/services/auth.service.js';
 import { UserModel } from '../src/models/user.model.js';
 import db from '../src/db/database.js';
@@ -112,7 +113,8 @@ describe('AuthService', () => {
       });
 
       // Verify token is valid
-      const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+      const JWT_SECRET =
+        process.env.JWT_SECRET || 'your-secret-key-change-in-production';
       const decoded = jwt.verify(result.token, JWT_SECRET) as {
         id: string;
         email: string;
