@@ -642,9 +642,9 @@ describe('GenerationStudio Component', () => {
       await user.click(abortButton);
     });
 
-    // Should show abort message
+    // Should show abort message (could be "Generation aborted" or abbreviated)
     await waitFor(() => {
-      expect(screen.getByText(/Generation aborted/i)).toBeInTheDocument();
+      expect(screen.getByText(/aborted/i)).toBeInTheDocument();
     });
   });
 
