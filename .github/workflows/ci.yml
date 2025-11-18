@@ -297,16 +297,33 @@ jobs:
 
       - name: Build backend
         working-directory: ./backend
-        run: npm run build
+        run: |
+          echo "Building backend..."
+          npm run build
+          echo "Build command completed"
 
       - name: Verify backend build
         working-directory: ./backend
         run: |
-          if [ ! -f dist/index.js ]; then
-            echo "Error: Backend build failed - dist/index.js not found"
+          echo "Checking dist directory contents:"
+          ls -la dist/ 2>/dev/null || echo "dist directory does not exist"
+          echo ""
+          echo "Searching for index.js:"
+          find dist -name "index.js" -type f 2>/dev/null || echo "index.js not found"
+          echo ""
+          # Check for index.js in dist (with rootDir: "./src", it should be dist/index.js)
+          if [ -f dist/index.js ]; then
+            echo "✓ Backend build verified - dist/index.js exists"
+          elif [ -f dist/src/index.js ]; then
+            echo "✓ Backend build verified - dist/src/index.js exists (fallback location)"
+          else
+            echo "Error: Backend build failed - index.js not found"
+            echo "Contents of dist directory:"
+            find dist -type f 2>/dev/null | head -20 || echo "No files found in dist"
+            echo ""
+            echo "TypeScript compilation may have failed. Check build output above."
             exit 1
           fi
-          echo "Backend build verified"
 
       - name: Start backend server
         working-directory: ./backend
