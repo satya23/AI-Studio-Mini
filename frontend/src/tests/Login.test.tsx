@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { BrowserRouter } from 'react-router-dom';
 import Login from '../components/Login.js';
@@ -122,7 +122,10 @@ describe('Login Component', () => {
 
     await user.type(emailInput, 'test@example.com');
     await user.type(passwordInput, 'Password123');
-    await user.click(submitButton);
+
+    await act(async () => {
+      await user.click(submitButton);
+    });
 
     await waitFor(() => {
       expect(mockLogin).toHaveBeenCalledWith({
@@ -168,7 +171,10 @@ describe('Login Component', () => {
 
     await user.type(emailInput, 'test@example.com');
     await user.type(passwordInput, 'Password123');
-    await user.click(submitButton);
+
+    await act(async () => {
+      await user.click(submitButton);
+    });
 
     await waitFor(() => {
       expect(mockNavigate).toHaveBeenCalledWith('/');
@@ -195,11 +201,14 @@ describe('Login Component', () => {
 
     await user.type(emailInput, 'test@example.com');
     await user.type(passwordInput, 'wrongpassword');
-    await user.click(submitButton);
 
-    await waitFor(() => {
-      expect(screen.getByText('Invalid email or password')).toBeInTheDocument();
+    await act(async () => {
+      await user.click(submitButton);
     });
+
+    expect(
+      await screen.findByText('Invalid email or password')
+    ).toBeInTheDocument();
   });
 
   it('should show loading state during login', async () => {
@@ -243,7 +252,10 @@ describe('Login Component', () => {
 
     await user.type(emailInput, 'test@example.com');
     await user.type(passwordInput, 'Password123');
-    await user.click(submitButton);
+
+    await act(async () => {
+      await user.click(submitButton);
+    });
 
     expect(screen.getByText('Signing in...')).toBeInTheDocument();
     expect(submitButton).toBeDisabled();

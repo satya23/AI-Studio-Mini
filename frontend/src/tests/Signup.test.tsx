@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { BrowserRouter } from 'react-router-dom';
 import Signup from '../components/Signup.js';
@@ -104,11 +104,12 @@ describe('Signup Component', () => {
 
     await user.type(passwordInput, 'Password123');
     await user.type(confirmPasswordInput, 'DifferentPassword');
-    await user.click(submitButton);
 
-    await waitFor(() => {
-      expect(screen.getByText('Passwords do not match')).toBeInTheDocument();
+    await act(async () => {
+      await user.click(submitButton);
     });
+
+    expect(await screen.findByText('Passwords do not match')).toBeInTheDocument();
   });
 
   it('should show error for password too short', async () => {
@@ -123,13 +124,14 @@ describe('Signup Component', () => {
 
     await user.type(passwordInput, 'Short1');
     await user.type(confirmPasswordInput, 'Short1');
-    await user.click(submitButton);
 
-    await waitFor(() => {
-      expect(
-        screen.getByText('Password must be at least 8 characters long')
-      ).toBeInTheDocument();
+    await act(async () => {
+      await user.click(submitButton);
     });
+
+    expect(
+      await screen.findByText('Password must be at least 8 characters long')
+    ).toBeInTheDocument();
   });
 
   it('should show error for password missing lowercase', async () => {
@@ -144,13 +146,16 @@ describe('Signup Component', () => {
 
     await user.type(passwordInput, 'PASSWORD123');
     await user.type(confirmPasswordInput, 'PASSWORD123');
-    await user.click(submitButton);
 
-    await waitFor(() => {
-      expect(
-        screen.getByText('Password must contain at least one lowercase letter')
-      ).toBeInTheDocument();
+    await act(async () => {
+      await user.click(submitButton);
     });
+
+    expect(
+      await screen.findByText(
+        'Password must contain at least one lowercase letter'
+      )
+    ).toBeInTheDocument();
   });
 
   it('should show error for password missing uppercase', async () => {
@@ -165,13 +170,16 @@ describe('Signup Component', () => {
 
     await user.type(passwordInput, 'password123');
     await user.type(confirmPasswordInput, 'password123');
-    await user.click(submitButton);
 
-    await waitFor(() => {
-      expect(
-        screen.getByText('Password must contain at least one uppercase letter')
-      ).toBeInTheDocument();
+    await act(async () => {
+      await user.click(submitButton);
     });
+
+    expect(
+      await screen.findByText(
+        'Password must contain at least one uppercase letter'
+      )
+    ).toBeInTheDocument();
   });
 
   it('should show error for password missing number', async () => {
@@ -186,13 +194,14 @@ describe('Signup Component', () => {
 
     await user.type(passwordInput, 'Password');
     await user.type(confirmPasswordInput, 'Password');
-    await user.click(submitButton);
 
-    await waitFor(() => {
-      expect(
-        screen.getByText('Password must contain at least one number')
-      ).toBeInTheDocument();
+    await act(async () => {
+      await user.click(submitButton);
     });
+
+    expect(
+      await screen.findByText('Password must contain at least one number')
+    ).toBeInTheDocument();
   });
 
   it('should call signup and login on successful form submission', async () => {
@@ -240,7 +249,10 @@ describe('Signup Component', () => {
     await user.type(emailInput, 'test@example.com');
     await user.type(passwordInput, 'Password123');
     await user.type(confirmPasswordInput, 'Password123');
-    await user.click(submitButton);
+
+    await act(async () => {
+      await user.click(submitButton);
+    });
 
     await waitFor(() => {
       expect(mockSignup).toHaveBeenCalledWith({
@@ -299,7 +311,10 @@ describe('Signup Component', () => {
     await user.type(emailInput, 'test@example.com');
     await user.type(passwordInput, 'Password123');
     await user.type(confirmPasswordInput, 'Password123');
-    await user.click(submitButton);
+
+    await act(async () => {
+      await user.click(submitButton);
+    });
 
     await waitFor(() => {
       expect(mockNavigate).toHaveBeenCalledWith('/');
@@ -330,13 +345,14 @@ describe('Signup Component', () => {
     await user.type(emailInput, 'existing@example.com');
     await user.type(passwordInput, 'Password123');
     await user.type(confirmPasswordInput, 'Password123');
-    await user.click(submitButton);
 
-    await waitFor(() => {
-      expect(
-        screen.getByText('User with this email already exists')
-      ).toBeInTheDocument();
+    await act(async () => {
+      await user.click(submitButton);
     });
+
+    expect(
+      await screen.findByText('User with this email already exists')
+    ).toBeInTheDocument();
   });
 
   it('should show loading state during signup', async () => {
@@ -393,7 +409,10 @@ describe('Signup Component', () => {
     await user.type(emailInput, 'test@example.com');
     await user.type(passwordInput, 'Password123');
     await user.type(confirmPasswordInput, 'Password123');
-    await user.click(submitButton);
+
+    await act(async () => {
+      await user.click(submitButton);
+    });
 
     expect(screen.getByText('Creating account...')).toBeInTheDocument();
     expect(submitButton).toBeDisabled();
