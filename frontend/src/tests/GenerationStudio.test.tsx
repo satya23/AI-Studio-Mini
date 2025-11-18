@@ -612,16 +612,28 @@ describe('GenerationStudio Component', () => {
       await user.click(generateButton);
     });
 
+    // Wait for retry message to appear (indicates retry has started)
+    await waitFor(
+      () => {
+        expect(screen.getByText(/Model overloaded.*Retrying/i)).toBeInTheDocument();
+      },
+      { timeout: 4000 }
+    );
+
     // Wait for retry to be attempted (second call to generation service)
     await waitFor(
       () => {
         expect(generationService.create).toHaveBeenCalledTimes(2);
       },
-      { timeout: 4000 }
+      { timeout: 2000 }
     );
 
-    // Abort during retry
-    const abortButton = screen.getByRole('button', { name: /abort/i });
+    // Wait for abort button to appear (it should be visible during retry)
+    const abortButton = await waitFor(
+      () => screen.getByRole('button', { name: /abort/i }),
+      { timeout: 2000 }
+    );
+
     await act(async () => {
       await user.click(abortButton);
     });
