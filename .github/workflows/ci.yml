@@ -305,20 +305,13 @@ jobs:
           npm start > backend.log 2>&1 &
           echo $! > backend.pid
           echo "Backend server starting..."
-          sleep 3
-          # Wait for backend to be ready
-          for i in {1..30}; do
-            if curl -f http://localhost:5000/health > /dev/null 2>&1; then
-              echo "Backend is ready!"
-              break
-            fi
-            echo "Waiting for backend... ($i/30)"
-            sleep 1
-          done
         env:
           NODE_ENV: test
-          PORT: 5000
+          PORT: 5050
           JWT_SECRET: test-secret-key-for-ci
+
+      - name: Wait for backend
+        run: npx wait-on http://localhost:5050/health --timeout 30000
 
       - name: Start frontend server
         working-directory: ./frontend
@@ -337,13 +330,13 @@ jobs:
             sleep 1
           done
         env:
-          VITE_API_URL: http://localhost:5000
+          VITE_API_URL: http://localhost:5050
 
       - name: Run E2E tests
         run: npm run test:e2e
         env:
           CI: true
-          API_URL: http://localhost:5000
+          API_URL: http://localhost:5050
           FRONTEND_URL: http://localhost:3000
 
       - name: Stop servers
