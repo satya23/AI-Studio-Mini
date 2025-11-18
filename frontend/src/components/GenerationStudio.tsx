@@ -237,7 +237,10 @@ export default function GenerationStudio() {
 
               {/* Image Upload */}
               <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label
+                  htmlFor="imageUpload"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
                   Upload Image (Optional, max 10MB, JPEG/PNG)
                 </label>
                 <div className="mt-1 flex items-center space-x-4">
@@ -246,6 +249,7 @@ export default function GenerationStudio() {
                       Choose File
                     </span>
                     <input
+                      id="imageUpload"
                       type="file"
                       accept="image/jpeg,image/jpg,image/png"
                       onChange={handleImageChange}

@@ -38,6 +38,7 @@ describe('GenerationStudio Component', () => {
 
   afterEach(() => {
     vi.clearAllMocks();
+    vi.useRealTimers();
   });
 
   const renderGenerationStudio = () => {
@@ -395,48 +396,60 @@ describe('GenerationStudio Component', () => {
   });
 
   it('should handle maximum retry attempts (3 retries then failure)', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     vi.mocked(generationService.getGenerations).mockResolvedValue([]);
 
-    // All 4 calls fail with 503 (initial + 3 retries)
-    vi.mocked(generationService.create)
-      .mockRejectedValueOnce({
-        response: { status: 503 },
-      })
-      .mockRejectedValueOnce({
-        response: { status: 503 },
-      })
-      .mockRejectedValueOnce({
-        response: { status: 503 },
-      })
-      .mockRejectedValueOnce({
-        response: { status: 503 },
+    // Use fake timers to control setTimeout
+    vi.useFakeTimers();
+
+    try {
+      // All 4 calls fail with 503 (initial + 3 retries)
+      vi.mocked(generationService.create)
+        .mockRejectedValueOnce({
+          response: { status: 503 },
+        })
+        .mockRejectedValueOnce({
+          response: { status: 503 },
+        })
+        .mockRejectedValueOnce({
+          response: { status: 503 },
+        })
+        .mockRejectedValueOnce({
+          response: { status: 503 },
+        });
+
+      renderGenerationStudio();
+
+      const promptInput = screen.getByLabelText(/Prompt/i);
+      const generateButton = screen.getByRole('button', { name: /generate/i });
+
+      await act(async () => {
+        await user.type(promptInput, 'A beautiful sunset');
+        await user.click(generateButton);
       });
 
-    renderGenerationStudio();
+      // Advance timers for all retries (3 retries * 1000ms delay)
+      await act(async () => {
+        vi.advanceTimersByTime(3000);
+      });
 
-    const promptInput = screen.getByLabelText(/Prompt/i);
-    const generateButton = screen.getByRole('button', { name: /generate/i });
+      // Wait for all retries to complete
+      await waitFor(
+        () => {
+          expect(
+            screen.getByText(
+              /Model is currently overloaded. Please try again in a few moments./i
+            )
+          ).toBeInTheDocument();
+        },
+        { timeout: 1000 }
+      );
 
-    await act(async () => {
-      await user.type(promptInput, 'A beautiful sunset');
-      await user.click(generateButton);
-    });
-
-    // Wait for all retries to complete
-    await waitFor(
-      () => {
-        expect(
-          screen.getByText(
-            /Model is currently overloaded. Please try again in a few moments./i
-          )
-        ).toBeInTheDocument();
-      },
-      { timeout: 5000 }
-    );
-
-    // Verify generate button is enabled again
-    expect(generateButton).not.toBeDisabled();
+      // Verify generate button is enabled again
+      expect(generateButton).not.toBeDisabled();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('should disable form fields during generation', async () => {
@@ -494,7 +507,15 @@ describe('GenerationStudio Component', () => {
       await user.type(promptInput, 'Test prompt');
     });
 
-    expect(screen.getByText(/12\/500 characters/i)).toBeInTheDocument();
+    // Character count is split across text nodes, check parent element
+    const characterCountElement = screen.getByText((content, element) => {
+      const parent = element?.parentElement;
+      return (
+        parent?.textContent === '11 /500 characters' ||
+        parent?.textContent?.includes('11 /500')
+      );
+    });
+    expect(characterCountElement).toBeInTheDocument();
   });
 
   it('should handle abort during retry', async () => {
@@ -648,7 +669,7 @@ describe('GenerationStudio Component', () => {
       await user.click(generateButton);
     });
 
-    // Wait for new generation to appear
+    // Wait for new generation to appear (this also waits for getGenerations to be called)
     await waitFor(
       () => {
         expect(screen.getByText('New prompt')).toBeInTheDocument();
@@ -656,8 +677,10 @@ describe('GenerationStudio Component', () => {
       { timeout: 5000 }
     );
 
-    // Verify getGenerations was called again
-    expect(generationService.getGenerations).toHaveBeenCalledTimes(2);
+    // Verify getGenerations was called again (once on mount, once after generation)
+    await waitFor(() => {
+      expect(generationService.getGenerations).toHaveBeenCalledTimes(2);
+    });
   });
 });
 
