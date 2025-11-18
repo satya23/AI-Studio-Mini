@@ -340,7 +340,7 @@ export default function GenerationStudio() {
                 <button
                   type="button"
                   onClick={handleGenerate}
-                  disabled={isGenerating || !prompt.trim()}
+                  disabled={isGenerating}
                   className="flex-1 px-6 py-3 bg-indigo-600 text-white font-medium rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
                 >
                   {isGenerating ? (
@@ -396,7 +396,7 @@ export default function GenerationStudio() {
                 </p>
               ) : (
                 <div className="space-y-4">
-                  {pastGenerations.map(generation => (
+                  {pastGenerations.slice(0, 5).map(generation => (
                     <div
                       key={generation.id}
                       className="border border-gray-200 rounded-lg p-3 hover:border-indigo-300 cursor-pointer transition-colors"
