@@ -192,4 +192,3 @@ describe('POST /generations', () => {
     });
   });
 });
-

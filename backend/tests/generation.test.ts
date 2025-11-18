@@ -22,9 +22,15 @@ describe('GenerationModel', () => {
 
       expect(result).toHaveProperty('id');
       expect(result).toHaveProperty('userId', 'user-123');
-      expect(result).toHaveProperty('prompt', 'A beautiful sunset over mountains');
+      expect(result).toHaveProperty(
+        'prompt',
+        'A beautiful sunset over mountains'
+      );
       expect(result).toHaveProperty('style', 'realistic');
-      expect(result).toHaveProperty('imageUrl', 'https://example.com/image.jpg');
+      expect(result).toHaveProperty(
+        'imageUrl',
+        'https://example.com/image.jpg'
+      );
       expect(result).toHaveProperty('status', 'pending');
       expect(result).toHaveProperty('createdAt');
       expect(result.createdAt).toBeInstanceOf(Date);
@@ -66,7 +72,9 @@ describe('GenerationModel', () => {
       const result = GenerationModel.create(generationData);
       const after = new Date();
 
-      expect(result.createdAt.getTime()).toBeGreaterThanOrEqual(before.getTime());
+      expect(result.createdAt.getTime()).toBeGreaterThanOrEqual(
+        before.getTime()
+      );
       expect(result.createdAt.getTime()).toBeLessThanOrEqual(after.getTime());
     });
   });
@@ -155,4 +163,3 @@ describe('GenerationModel', () => {
     });
   });
 });
-
