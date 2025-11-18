@@ -171,14 +171,12 @@ export default function GenerationStudio() {
           setRetryCount(0);
           abortControllerRef.current = null;
         }
-      } else {
-        setIsGenerating(false);
-        setError(
-          err instanceof Error ? err.message : 'Failed to generate image'
-        );
-        setRetryCount(0);
-        abortControllerRef.current = null;
-      }
+    } else {
+      setIsGenerating(false);
+      setError('Failed to generate image. Please try again.');
+      setRetryCount(0);
+      abortControllerRef.current = null;
+    }
     }
   };
 
@@ -399,6 +397,7 @@ export default function GenerationStudio() {
                   {pastGenerations.slice(0, 5).map(generation => (
                     <div
                       key={generation.id}
+                      data-testid="past-generation-card"
                       className="border border-gray-200 rounded-lg p-3 hover:border-indigo-300 cursor-pointer transition-colors"
                       onClick={() => handleRestoreGeneration(generation)}
                     >
