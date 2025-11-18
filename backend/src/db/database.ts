@@ -12,13 +12,14 @@ const dbPath =
     : process.env.DATABASE_PATH ||
       path.join(__dirname, '../../data/database.db');
 
-const db = new Database(dbPath);
+// Create database instance
+const dbInstance = new Database(dbPath);
 
 // Enable foreign keys
-db.pragma('foreign_keys = ON');
+dbInstance.pragma('foreign_keys = ON');
 
 // Create users table
-db.exec(`
+dbInstance.exec(`
   CREATE TABLE IF NOT EXISTS users (
     id TEXT PRIMARY KEY,
     email TEXT UNIQUE NOT NULL,
@@ -27,4 +28,8 @@ db.exec(`
   )
 `);
 
+// Export as default
+// Using InstanceType to create a type that can be named in declaration files
+export type DatabaseInstance = InstanceType<typeof Database>;
+const db: DatabaseInstance = dbInstance;
 export default db;
