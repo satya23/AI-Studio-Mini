@@ -27,5 +27,4 @@ db.exec(`
   )
 `);
 
-export { db };
 export default db;
