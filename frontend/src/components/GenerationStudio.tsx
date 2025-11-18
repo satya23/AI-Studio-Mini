@@ -107,7 +107,7 @@ export default function GenerationStudio() {
         data.imageUpload = base64Image;
       }
 
-      const generation = await generationService.create(data, signal);
+      await generationService.create(data, signal);
 
       // Check if aborted
       if (signal.aborted) {
@@ -119,7 +119,7 @@ export default function GenerationStudio() {
       setIsGenerating(false);
       setRetryCount(0);
       abortControllerRef.current = null;
-      
+
       // Show success message briefly
       setError(null);
     } catch (err: unknown) {
@@ -132,7 +132,12 @@ export default function GenerationStudio() {
       }
 
       // Handle abort error
-      if (err && typeof err === 'object' && 'name' in err && err.name === 'CanceledError') {
+      if (
+        err &&
+        typeof err === 'object' &&
+        'name' in err &&
+        err.name === 'CanceledError'
+      ) {
         setIsGenerating(false);
         setError('Generation aborted');
         setRetryCount(0);
@@ -153,9 +158,7 @@ export default function GenerationStudio() {
         if (retryCount < 3) {
           const newRetryCount = retryCount + 1;
           setRetryCount(newRetryCount);
-          setError(
-            `Model overloaded. Retrying... (${newRetryCount}/3)`
-          );
+          setError(`Model overloaded. Retrying... (${newRetryCount}/3)`);
           // Retry after a short delay
           setTimeout(() => {
             attemptGeneration(signal);
@@ -259,7 +262,8 @@ export default function GenerationStudio() {
                   </label>
                   {imageFile && (
                     <span className="text-sm text-gray-600">
-                      {imageFile.name} ({(imageFile.size / 1024 / 1024).toFixed(2)} MB)
+                      {imageFile.name} (
+                      {(imageFile.size / 1024 / 1024).toFixed(2)} MB)
                     </span>
                   )}
                   {imagePreview && (
@@ -423,4 +427,3 @@ export default function GenerationStudio() {
     </div>
   );
 }
-

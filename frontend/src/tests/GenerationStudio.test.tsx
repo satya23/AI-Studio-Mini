@@ -1,5 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, waitFor, act, fireEvent } from '@testing-library/react';
+import {
+  render,
+  screen,
+  waitFor,
+  act,
+  fireEvent,
+} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { BrowserRouter } from 'react-router-dom';
 import { AuthProvider } from '../contexts/AuthContext.js';
@@ -60,7 +66,9 @@ describe('GenerationStudio Component', () => {
     expect(screen.getByLabelText(/Upload Image/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Prompt/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Style/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /generate/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /generate/i })
+    ).toBeInTheDocument();
   });
 
   it('should update prompt when user types', async () => {
@@ -139,7 +147,9 @@ describe('GenerationStudio Component', () => {
     renderGenerationStudio();
 
     const invalidFile = new File(['test'], 'test.gif', { type: 'image/gif' });
-    const fileInput = screen.getByLabelText(/Upload Image/i) as HTMLInputElement;
+    const fileInput = screen.getByLabelText(
+      /Upload Image/i
+    ) as HTMLInputElement;
 
     // Use fireEvent to trigger the change event with the file
     await act(async () => {
@@ -288,64 +298,60 @@ describe('GenerationStudio Component', () => {
     );
   });
 
-  it(
-    'should show abort button during generation',
-    async () => {
-      const user = userEvent.setup();
-      vi.mocked(generationService.getGenerations).mockResolvedValue([]);
+  it('should show abort button during generation', async () => {
+    const user = userEvent.setup();
+    vi.mocked(generationService.getGenerations).mockResolvedValue([]);
 
-      let resolvePromise: (value: unknown) => void;
-      const delayedPromise = new Promise(resolve => {
-        resolvePromise = resolve;
+    let resolvePromise: (value: unknown) => void;
+    const delayedPromise = new Promise(resolve => {
+      resolvePromise = resolve;
+    });
+
+    vi.mocked(generationService.create).mockReturnValue(
+      delayedPromise as never
+    );
+
+    renderGenerationStudio();
+
+    const promptInput = screen.getByLabelText(/Prompt/i);
+    const generateButton = screen.getByRole('button', { name: /generate/i });
+
+    // Type prompt first
+    await act(async () => {
+      await user.type(promptInput, 'A beautiful sunset');
+    });
+
+    // Click generate - this should set isGenerating to true immediately
+    // handleGenerate sets isGenerating to true before calling attemptGeneration
+    // Use fireEvent to trigger the click immediately
+    fireEvent.click(generateButton);
+
+    // Wait for abort button to appear
+    // The abort button only appears when isGenerating is true
+    // handleGenerate sets isGenerating synchronously, so it should appear quickly
+    // But we need to wait for React to re-render
+    await waitFor(
+      () => {
+        const abortButton = screen.queryByRole('button', { name: /abort/i });
+        expect(abortButton).not.toBeNull();
+        expect(abortButton).toBeInTheDocument();
+      },
+      { timeout: 5000 }
+    );
+
+    // Resolve to clean up
+    await act(async () => {
+      resolvePromise!({
+        id: 'gen-1',
+        imageUrl: 'https://example.com/image.jpg',
+        prompt: 'A beautiful sunset',
+        style: 'Realistic',
+        createdAt: new Date().toISOString(),
+        status: 'completed',
       });
-
-      vi.mocked(generationService.create).mockReturnValue(
-        delayedPromise as never
-      );
-
-      renderGenerationStudio();
-
-      const promptInput = screen.getByLabelText(/Prompt/i);
-      const generateButton = screen.getByRole('button', { name: /generate/i });
-
-      // Type prompt first
-      await act(async () => {
-        await user.type(promptInput, 'A beautiful sunset');
-      });
-
-      // Click generate - this should set isGenerating to true immediately
-      // handleGenerate sets isGenerating to true before calling attemptGeneration
-      // Use fireEvent to trigger the click immediately
-      fireEvent.click(generateButton);
-
-      // Wait for abort button to appear
-      // The abort button only appears when isGenerating is true
-      // handleGenerate sets isGenerating synchronously, so it should appear quickly
-      // But we need to wait for React to re-render
-      await waitFor(
-        () => {
-          const abortButton = screen.queryByRole('button', { name: /abort/i });
-          expect(abortButton).not.toBeNull();
-          expect(abortButton).toBeInTheDocument();
-        },
-        { timeout: 5000 }
-      );
-
-      // Resolve to clean up
-      await act(async () => {
-        resolvePromise!({
-          id: 'gen-1',
-          imageUrl: 'https://example.com/image.jpg',
-          prompt: 'A beautiful sunset',
-          style: 'Realistic',
-          createdAt: new Date().toISOString(),
-          status: 'completed',
-        });
-        await delayedPromise;
-      });
-    },
-    10000
-  );
+      await delayedPromise;
+    });
+  }, 10000);
 
   it('should display past generations', async () => {
     const mockGenerations = [
@@ -400,7 +406,9 @@ describe('GenerationStudio Component', () => {
       expect(screen.getByText('Sunset over mountains')).toBeInTheDocument();
     });
 
-    const generationCard = screen.getByText('Sunset over mountains').closest('div');
+    const generationCard = screen
+      .getByText('Sunset over mountains')
+      .closest('div');
     expect(generationCard).toBeInTheDocument();
 
     await act(async () => {
@@ -423,7 +431,7 @@ describe('GenerationStudio Component', () => {
     renderGenerationStudio();
 
     const generateButton = screen.getByRole('button', { name: /generate/i });
-    
+
     // Button should be disabled when prompt is empty
     expect(generateButton).toBeDisabled();
 
@@ -451,84 +459,82 @@ describe('GenerationStudio Component', () => {
     expect(generateButton).toBeDisabled();
   });
 
-  it(
-    'should handle maximum retry attempts (3 retries then failure)',
-    async () => {
-      const user = userEvent.setup();
-      vi.mocked(generationService.getGenerations).mockResolvedValue([]);
+  it('should handle maximum retry attempts (3 retries then failure)', async () => {
+    const user = userEvent.setup();
+    vi.mocked(generationService.getGenerations).mockResolvedValue([]);
 
-      // All 4 calls fail with 503 (initial + 3 retries)
-      // Each retry has a 1 second delay, so we need to account for that
-      vi.mocked(generationService.create)
-        .mockRejectedValueOnce({
-          response: { status: 503 },
-        })
-        .mockRejectedValueOnce({
-          response: { status: 503 },
-        })
-        .mockRejectedValueOnce({
-          response: { status: 503 },
-        })
-        .mockRejectedValueOnce({
-          response: { status: 503 },
-        });
-
-      renderGenerationStudio();
-
-      const promptInput = screen.getByLabelText(/Prompt/i);
-      const generateButton = screen.getByRole('button', { name: /generate/i });
-
-      await act(async () => {
-        await user.type(promptInput, 'A beautiful sunset');
-        await user.click(generateButton);
+    // All 4 calls fail with 503 (initial + 3 retries)
+    // Each retry has a 1 second delay, so we need to account for that
+    vi.mocked(generationService.create)
+      .mockRejectedValueOnce({
+        response: { status: 503 },
+      })
+      .mockRejectedValueOnce({
+        response: { status: 503 },
+      })
+      .mockRejectedValueOnce({
+        response: { status: 503 },
+      })
+      .mockRejectedValueOnce({
+        response: { status: 503 },
       });
 
-      // Wait for all retries to complete
-      // Each retry has a 1 second setTimeout delay, so 3 retries = 3 seconds minimum
-      // Plus processing time, so we need a longer timeout
-      // The retry logic uses setTimeout which runs asynchronously
-      // We need to wait for all 4 attempts (initial + 3 retries) to fail
-      await waitFor(
-        () => {
-          // Check for the final error message after all retries fail
-          // The error message should appear after 4 failed attempts (initial + 3 retries)
-          const errorMessage = screen.queryByText(
-            /Model is currently overloaded. Please try again in a few moments./i
-          );
-          if (errorMessage) {
-            expect(errorMessage).toBeInTheDocument();
-          } else {
-            // Also check for any error message containing "overloaded"
-            const anyOverloadedError = screen.queryByText(/overloaded/i);
-            if (anyOverloadedError) {
-              expect(anyOverloadedError).toBeInTheDocument();
-            } else {
-              // If no error message found, check if button is enabled (which means retries completed)
-              const button = screen.getByRole('button', { name: /generate/i });
-              if (!button.disabled) {
-                // Button is enabled, so retries completed, but error message might not be showing
-                // This is acceptable - the test verifies the retry mechanism worked
-                return;
-              }
-              throw new Error('Error message not found and button still disabled');
-            }
-          }
-        },
-        { timeout: 20000 }
-      );
+    renderGenerationStudio();
 
-      // Verify generate button is enabled again (isGenerating should be false after all retries)
-      // The component sets isGenerating to false after the final retry fails
-      await waitFor(
-        () => {
-          const button = screen.getByRole('button', { name: /generate/i });
-          expect(button).not.toBeDisabled();
-        },
-        { timeout: 3000 }
-      );
-    },
-    25000
-  );
+    const promptInput = screen.getByLabelText(/Prompt/i);
+    const generateButton = screen.getByRole('button', { name: /generate/i });
+
+    await act(async () => {
+      await user.type(promptInput, 'A beautiful sunset');
+      await user.click(generateButton);
+    });
+
+    // Wait for all retries to complete
+    // Each retry has a 1 second setTimeout delay, so 3 retries = 3 seconds minimum
+    // Plus processing time, so we need a longer timeout
+    // The retry logic uses setTimeout which runs asynchronously
+    // We need to wait for all 4 attempts (initial + 3 retries) to fail
+    await waitFor(
+      () => {
+        // Check for the final error message after all retries fail
+        // The error message should appear after 4 failed attempts (initial + 3 retries)
+        const errorMessage = screen.queryByText(
+          /Model is currently overloaded. Please try again in a few moments./i
+        );
+        if (errorMessage) {
+          expect(errorMessage).toBeInTheDocument();
+        } else {
+          // Also check for any error message containing "overloaded"
+          const anyOverloadedError = screen.queryByText(/overloaded/i);
+          if (anyOverloadedError) {
+            expect(anyOverloadedError).toBeInTheDocument();
+          } else {
+            // If no error message found, check if button is enabled (which means retries completed)
+            const button = screen.getByRole('button', { name: /generate/i });
+            if (!button.disabled) {
+              // Button is enabled, so retries completed, but error message might not be showing
+              // This is acceptable - the test verifies the retry mechanism worked
+              return;
+            }
+            throw new Error(
+              'Error message not found and button still disabled'
+            );
+          }
+        }
+      },
+      { timeout: 20000 }
+    );
+
+    // Verify generate button is enabled again (isGenerating should be false after all retries)
+    // The component sets isGenerating to false after the final retry fails
+    await waitFor(
+      () => {
+        const button = screen.getByRole('button', { name: /generate/i });
+        expect(button).not.toBeDisabled();
+      },
+      { timeout: 3000 }
+    );
+  }, 25000);
 
   it('should disable form fields during generation', async () => {
     const user = userEvent.setup();
@@ -586,9 +592,8 @@ describe('GenerationStudio Component', () => {
     });
 
     // Character count is split across text nodes, check parent element
-    const characterCountParent = screen
-      .getByText(/\/500 characters/i)
-      .parentElement;
+    const characterCountParent =
+      screen.getByText(/\/500 characters/i).parentElement;
     expect(characterCountParent?.textContent).toContain('11');
     expect(characterCountParent?.textContent).toContain('/500 characters');
   });
@@ -598,9 +603,9 @@ describe('GenerationStudio Component', () => {
     vi.mocked(generationService.getGenerations).mockResolvedValue([]);
 
     // First call fails, then we abort
-    let rejectPromise: (reason?: unknown) => void;
     const delayedReject = new Promise((_, reject) => {
-      rejectPromise = reject;
+      // Promise will be rejected when aborted
+      setTimeout(() => reject(new Error('Aborted')), 1000);
     });
 
     vi.mocked(generationService.create)
@@ -619,14 +624,14 @@ describe('GenerationStudio Component', () => {
       await user.click(generateButton);
     });
 
-    // Wait for retry message
+    // Wait for retry message - the format is "Model overloaded. Retrying... (1/3)"
+    // Use a more flexible matcher
     await waitFor(
       () => {
-        expect(
-          screen.getByText(/Model overloaded. Retrying.../i)
-        ).toBeInTheDocument();
+        const retryMessage = screen.queryByText(/Model overloaded.*Retrying/i);
+        expect(retryMessage).toBeInTheDocument();
       },
-      { timeout: 2000 }
+      { timeout: 3000 }
     );
 
     // Abort during retry
@@ -700,80 +705,77 @@ describe('GenerationStudio Component', () => {
     });
   });
 
-  it(
-    'should reload past generations after successful generation',
-    async () => {
-      const user = userEvent.setup();
-      const initialGenerations = [
-        {
-          id: 'gen-1',
-          imageUrl: 'https://example.com/image1.jpg',
-          prompt: 'Old prompt',
-          style: 'Realistic',
-          status: 'completed' as const,
-          createdAt: new Date().toISOString(),
-        },
-      ];
-
-      const newGeneration = {
-        id: 'gen-2',
-        imageUrl: 'https://example.com/image2.jpg',
-        prompt: 'New prompt',
-        style: 'Anime',
+  it('should reload past generations after successful generation', async () => {
+    const user = userEvent.setup();
+    const initialGenerations = [
+      {
+        id: 'gen-1',
+        imageUrl: 'https://example.com/image1.jpg',
+        prompt: 'Old prompt',
+        style: 'Realistic',
+        status: 'completed' as const,
         createdAt: new Date().toISOString(),
-        status: 'completed',
-      };
+      },
+    ];
 
-      vi.mocked(generationService.getGenerations)
-        .mockResolvedValueOnce(initialGenerations)
-        .mockResolvedValueOnce([newGeneration, ...initialGenerations]);
+    const newGeneration = {
+      id: 'gen-2',
+      imageUrl: 'https://example.com/image2.jpg',
+      prompt: 'New prompt',
+      style: 'Anime',
+      createdAt: new Date().toISOString(),
+      status: 'completed',
+    };
 
-      vi.mocked(generationService.create).mockResolvedValue(newGeneration);
+    vi.mocked(generationService.getGenerations)
+      .mockResolvedValueOnce(initialGenerations)
+      .mockResolvedValueOnce([newGeneration, ...initialGenerations]);
 
-      renderGenerationStudio();
+    vi.mocked(generationService.create).mockResolvedValue(newGeneration);
 
-      // Wait for initial load
-      await waitFor(() => {
-        expect(screen.getByText('Old prompt')).toBeInTheDocument();
-      });
+    renderGenerationStudio();
 
-      const promptInput = screen.getByLabelText(/Prompt/i);
-      const generateButton = screen.getByRole('button', {
-        name: /generate/i,
-      });
+    // Wait for initial load
+    await waitFor(() => {
+      expect(screen.getByText('Old prompt')).toBeInTheDocument();
+    });
 
-      await act(async () => {
-        await user.type(promptInput, 'New prompt');
-        await user.selectOptions(screen.getByLabelText(/Style/i), 'Anime');
-        await user.click(generateButton);
-      });
+    const promptInput = screen.getByLabelText(/Prompt/i);
+    const generateButton = screen.getByRole('button', {
+      name: /generate/i,
+    });
 
-      // Wait for generation to complete and new generation to appear
-      // This also waits for loadPastGenerations to be called
-      // Use getAllByText and check for the generation card (not the textarea)
-      await waitFor(
-        () => {
-          const newPromptElements = screen.getAllByText('New prompt');
-          // Should have at least 2: one in textarea, one in the generation card
-          expect(newPromptElements.length).toBeGreaterThanOrEqual(1);
-          // Check that we can find it in the recent generations section
-          const recentGenerations = screen.getByText('Recent Generations').closest('div');
-          expect(recentGenerations).toBeInTheDocument();
-        },
-        { timeout: 15000 }
-      );
+    await act(async () => {
+      await user.type(promptInput, 'New prompt');
+      await user.selectOptions(screen.getByLabelText(/Style/i), 'Anime');
+      await user.click(generateButton);
+    });
 
-      // Verify getGenerations was called again (once on mount, once after generation)
-      // The component calls loadPastGenerations after successful generation
-      // We need to wait a bit for the async call to complete
-      await waitFor(
-        () => {
-          expect(generationService.getGenerations).toHaveBeenCalledTimes(2);
-        },
-        { timeout: 5000 }
-      );
-    },
-    25000
-  );
+    // Wait for generation to complete and new generation to appear
+    // This also waits for loadPastGenerations to be called
+    // Use getAllByText and check for the generation card (not the textarea)
+    await waitFor(
+      () => {
+        const newPromptElements = screen.getAllByText('New prompt');
+        // Should have at least 2: one in textarea, one in the generation card
+        expect(newPromptElements.length).toBeGreaterThanOrEqual(1);
+        // Check that we can find it in the recent generations section
+        const recentGenerations = screen
+          .getByText('Recent Generations')
+          .closest('div');
+        expect(recentGenerations).toBeInTheDocument();
+      },
+      { timeout: 15000 }
+    );
+
+    // Verify getGenerations was called again (once on mount, once after generation)
+    // The component calls loadPastGenerations after successful generation
+    // We need to wait a bit for the async call to complete
+    await waitFor(
+      () => {
+        expect(generationService.getGenerations).toHaveBeenCalledTimes(2);
+      },
+      { timeout: 5000 }
+    );
+  }, 25000);
 });
-

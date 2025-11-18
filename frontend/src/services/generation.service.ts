@@ -50,4 +50,3 @@ export const generationService = {
     return response.data.generations;
   },
 };
-
