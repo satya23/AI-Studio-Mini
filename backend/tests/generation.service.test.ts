@@ -1,15 +1,7 @@
 /// <reference types="jest" />
 import { GenerationService } from '../src/services/generation.service.js';
 import { GenerationModel } from '../src/models/generation.model.js';
-import { UserModel } from '../src/models/user.model.js';
 import { clearDatabase } from '../src/db/database.js';
-
-const createUserForId = async (userId: string) => {
-  await UserModel.create({
-    email: `${userId}-${Date.now()}@example.com`,
-    password: 'password123',
-  });
-};
 
 describe('GenerationService', () => {
   let randomSpy: jest.SpyInstance<number, []>;

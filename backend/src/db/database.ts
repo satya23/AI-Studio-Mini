@@ -8,8 +8,7 @@ const rootDir = process.cwd();
 const dbPath =
   process.env.NODE_ENV === 'test'
     ? ':memory:'
-    : process.env.DATABASE_PATH ||
-      path.resolve(rootDir, 'data/database.db');
+    : process.env.DATABASE_PATH || path.resolve(rootDir, 'data/database.db');
 
 // Ensure the directory exists for file-based databases
 if (dbPath !== ':memory:') {
