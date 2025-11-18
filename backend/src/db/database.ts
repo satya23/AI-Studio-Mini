@@ -12,7 +12,7 @@ const dbPath =
     : process.env.DATABASE_PATH ||
       path.join(__dirname, '../../data/database.db');
 
-export const db = new Database(dbPath);
+const db = new Database(dbPath);
 
 // Enable foreign keys
 db.pragma('foreign_keys = ON');
@@ -27,4 +27,5 @@ db.exec(`
   )
 `);
 
+export { db };
 export default db;
