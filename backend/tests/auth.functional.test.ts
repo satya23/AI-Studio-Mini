@@ -137,3 +137,178 @@ describe('POST /auth/signup', () => {
     });
   });
 });
+
+describe('POST /auth/login', () => {
+  beforeEach(() => {
+    // Clear users table before each test
+    db.exec('DELETE FROM users');
+  });
+
+  describe('Successful login', () => {
+    it('should login successfully with correct credentials', async () => {
+      // Create a user first
+      await request(app).post('/auth/signup').send({
+        email: 'login@example.com',
+        password: 'Password123',
+      });
+
+      // Login with correct credentials
+      const response = await request(app).post('/auth/login').send({
+        email: 'login@example.com',
+        password: 'Password123',
+      });
+
+      expect(response.status).toBe(200);
+      expect(response.body).toHaveProperty('message', 'Login successful');
+      expect(response.body).toHaveProperty('user');
+      expect(response.body).toHaveProperty('token');
+      expect(response.body.user).toHaveProperty('id');
+      expect(response.body.user).toHaveProperty('email', 'login@example.com');
+      expect(response.body.user).toHaveProperty('createdAt');
+      expect(response.body.user).not.toHaveProperty('password');
+      expect(typeof response.body.token).toBe('string');
+      expect(response.body.token.length).toBeGreaterThan(0);
+    });
+
+    it('should return a valid JWT token', async () => {
+      // Create a user first
+      await request(app).post('/auth/signup').send({
+        email: 'jwt@example.com',
+        password: 'Password123',
+      });
+
+      // Login
+      const response = await request(app).post('/auth/login').send({
+        email: 'jwt@example.com',
+        password: 'Password123',
+      });
+
+      expect(response.status).toBe(200);
+      expect(response.body.token).toBeDefined();
+      // JWT tokens have 3 parts separated by dots
+      const tokenParts = response.body.token.split('.');
+      expect(tokenParts.length).toBe(3);
+    });
+  });
+
+  describe('Authentication errors', () => {
+    it('should return 401 for non-existent user', async () => {
+      const response = await request(app).post('/auth/login').send({
+        email: 'nonexistent@example.com',
+        password: 'Password123',
+      });
+
+      expect(response.status).toBe(401);
+      expect(response.body).toHaveProperty(
+        'message',
+        'Invalid email or password'
+      );
+    });
+
+    it('should return 401 for incorrect password', async () => {
+      // Create a user first
+      await request(app).post('/auth/signup').send({
+        email: 'wrongpass@example.com',
+        password: 'Password123',
+      });
+
+      // Try to login with wrong password
+      const response = await request(app).post('/auth/login').send({
+        email: 'wrongpass@example.com',
+        password: 'WrongPassword123',
+      });
+
+      expect(response.status).toBe(401);
+      expect(response.body).toHaveProperty(
+        'message',
+        'Invalid email or password'
+      );
+    });
+
+    it('should return 401 for empty password', async () => {
+      // Create a user first
+      await request(app).post('/auth/signup').send({
+        email: 'emptypass@example.com',
+        password: 'Password123',
+      });
+
+      // Try to login with empty password
+      const response = await request(app).post('/auth/login').send({
+        email: 'emptypass@example.com',
+        password: '',
+      });
+
+      expect(response.status).toBe(401);
+      expect(response.body).toHaveProperty(
+        'message',
+        'Invalid email or password'
+      );
+    });
+  });
+
+  describe('Validation errors', () => {
+    it('should return 400 for invalid email format', async () => {
+      const response = await request(app).post('/auth/login').send({
+        email: 'invalid-email',
+        password: 'Password123',
+      });
+
+      expect(response.status).toBe(400);
+      expect(response.body).toHaveProperty('message', 'Validation error');
+      expect(response.body).toHaveProperty('errors');
+    });
+
+    it('should return 400 for missing email', async () => {
+      const response = await request(app).post('/auth/login').send({
+        password: 'Password123',
+      });
+
+      expect(response.status).toBe(400);
+      expect(response.body).toHaveProperty('message', 'Validation error');
+    });
+
+    it('should return 400 for missing password', async () => {
+      const response = await request(app).post('/auth/login').send({
+        email: 'test@example.com',
+      });
+
+      expect(response.status).toBe(400);
+      expect(response.body).toHaveProperty('message', 'Validation error');
+    });
+  });
+
+  describe('Edge cases', () => {
+    it('should handle empty request body', async () => {
+      const response = await request(app).post('/auth/login').send({});
+
+      expect(response.status).toBe(400);
+      expect(response.body).toHaveProperty('message', 'Validation error');
+    });
+
+    it('should handle malformed JSON', async () => {
+      const response = await request(app)
+        .post('/auth/login')
+        .set('Content-Type', 'application/json')
+        .send('invalid json');
+
+      expect(response.status).toBe(400);
+    });
+
+    it('should be case-sensitive for email', async () => {
+      // Create a user first
+      await request(app).post('/auth/signup').send({
+        email: 'CaseSensitive@example.com',
+        password: 'Password123',
+      });
+
+      // Try to login with different case
+      const response = await request(app).post('/auth/login').send({
+        email: 'casesensitive@example.com',
+        password: 'Password123',
+      });
+
+      // Should fail because email is case-sensitive in database
+      expect(response.status).toBe(401);
+    });
+  });
+});
