@@ -108,12 +108,10 @@ describe('Login Component', () => {
     });
 
     vi.mocked(authService.authService.login).mockImplementation(mockLogin);
-    vi.mocked(authService.authService.getCurrentUser).mockImplementation(
-      () => {
-        const userStr = localStorage.getItem('user');
-        return userStr ? JSON.parse(userStr) : null;
-      }
-    );
+    vi.mocked(authService.authService.getCurrentUser).mockImplementation(() => {
+      const userStr = localStorage.getItem('user');
+      return userStr ? JSON.parse(userStr) : null;
+    });
     vi.mocked(authService.authService.isAuthenticated).mockImplementation(
       () => !!localStorage.getItem('token')
     );
@@ -156,12 +154,10 @@ describe('Login Component', () => {
     });
 
     vi.mocked(authService.authService.login).mockImplementation(mockLogin);
-    vi.mocked(authService.authService.getCurrentUser).mockImplementation(
-      () => {
-        const userStr = localStorage.getItem('user');
-        return userStr ? JSON.parse(userStr) : null;
-      }
-    );
+    vi.mocked(authService.authService.getCurrentUser).mockImplementation(() => {
+      const userStr = localStorage.getItem('user');
+      return userStr ? JSON.parse(userStr) : null;
+    });
     vi.mocked(authService.authService.isAuthenticated).mockImplementation(
       () => !!localStorage.getItem('token')
     );
@@ -209,7 +205,7 @@ describe('Login Component', () => {
 
     await waitFor(() => {
       expect(
-        screen.getByText((content) =>
+        screen.getByText(content =>
           content.includes('Invalid email or password')
         )
       ).toBeInTheDocument();
@@ -239,12 +235,10 @@ describe('Login Component', () => {
     );
 
     vi.mocked(authService.authService.login).mockImplementation(mockLogin);
-    vi.mocked(authService.authService.getCurrentUser).mockImplementation(
-      () => {
-        const userStr = localStorage.getItem('user');
-        return userStr ? JSON.parse(userStr) : null;
-      }
-    );
+    vi.mocked(authService.authService.getCurrentUser).mockImplementation(() => {
+      const userStr = localStorage.getItem('user');
+      return userStr ? JSON.parse(userStr) : null;
+    });
     vi.mocked(authService.authService.isAuthenticated).mockImplementation(
       () => !!localStorage.getItem('token')
     );

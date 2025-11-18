@@ -1,5 +1,4 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import axios from 'axios';
 import { authService } from '../services/auth.service.js';
 import api from '../services/api.js';
 

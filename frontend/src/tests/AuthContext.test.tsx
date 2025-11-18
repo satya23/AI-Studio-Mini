@@ -69,12 +69,10 @@ describe('AuthContext', () => {
       token: 'mock-token',
     };
 
-    vi.mocked(authService.authService.getCurrentUser).mockImplementation(
-      () => {
-        const userStr = localStorage.getItem('user');
-        return userStr ? JSON.parse(userStr) : null;
-      }
-    );
+    vi.mocked(authService.authService.getCurrentUser).mockImplementation(() => {
+      const userStr = localStorage.getItem('user');
+      return userStr ? JSON.parse(userStr) : null;
+    });
     vi.mocked(authService.authService.isAuthenticated).mockImplementation(
       () => !!localStorage.getItem('token')
     );
@@ -114,12 +112,10 @@ describe('AuthContext', () => {
       token: 'mock-token',
     };
 
-    vi.mocked(authService.authService.getCurrentUser).mockImplementation(
-      () => {
-        const userStr = localStorage.getItem('user');
-        return userStr ? JSON.parse(userStr) : null;
-      }
-    );
+    vi.mocked(authService.authService.getCurrentUser).mockImplementation(() => {
+      const userStr = localStorage.getItem('user');
+      return userStr ? JSON.parse(userStr) : null;
+    });
     vi.mocked(authService.authService.isAuthenticated).mockImplementation(
       () => !!localStorage.getItem('token')
     );

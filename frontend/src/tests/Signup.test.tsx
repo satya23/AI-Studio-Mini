@@ -1,5 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, waitFor, act, fireEvent } from '@testing-library/react';
+import {
+  render,
+  screen,
+  waitFor,
+  act,
+  fireEvent,
+} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { BrowserRouter } from 'react-router-dom';
 import Signup from '../components/Signup.js';
@@ -102,13 +108,15 @@ describe('Signup Component', () => {
 
     const passwordInput = screen.getByLabelText('Password');
     const confirmPasswordInput = screen.getByLabelText('Confirm Password');
-    const form = screen.getByRole('button', {
-      name: /create account/i,
-    }).closest('form') as HTMLFormElement;
+    const form = screen
+      .getByRole('button', {
+        name: /create account/i,
+      })
+      .closest('form') as HTMLFormElement;
 
     await user.type(passwordInput, 'Password123');
     await user.type(confirmPasswordInput, 'DifferentPassword');
-    
+
     await act(async () => {
       fireEvent.submit(form);
     });
@@ -123,19 +131,23 @@ describe('Signup Component', () => {
 
     const passwordInput = screen.getByLabelText('Password');
     const confirmPasswordInput = screen.getByLabelText('Confirm Password');
-    const form = screen.getByRole('button', {
-      name: /create account/i,
-    }).closest('form') as HTMLFormElement;
+    const form = screen
+      .getByRole('button', {
+        name: /create account/i,
+      })
+      .closest('form') as HTMLFormElement;
 
     await user.type(passwordInput, 'Short1');
     await user.type(confirmPasswordInput, 'Short1');
-    
+
     await act(async () => {
       fireEvent.submit(form);
     });
 
     const errorAlert = await screen.findByRole('alert');
-    expect(errorAlert).toHaveTextContent('Password must be at least 8 characters long');
+    expect(errorAlert).toHaveTextContent(
+      'Password must be at least 8 characters long'
+    );
   });
 
   it('should show error for password missing lowercase', async () => {
@@ -144,19 +156,23 @@ describe('Signup Component', () => {
 
     const passwordInput = screen.getByLabelText('Password');
     const confirmPasswordInput = screen.getByLabelText('Confirm Password');
-    const form = screen.getByRole('button', {
-      name: /create account/i,
-    }).closest('form') as HTMLFormElement;
+    const form = screen
+      .getByRole('button', {
+        name: /create account/i,
+      })
+      .closest('form') as HTMLFormElement;
 
     await user.type(passwordInput, 'PASSWORD123');
     await user.type(confirmPasswordInput, 'PASSWORD123');
-    
+
     await act(async () => {
       fireEvent.submit(form);
     });
 
     const errorAlert = await screen.findByRole('alert');
-    expect(errorAlert).toHaveTextContent('Password must contain at least one lowercase letter');
+    expect(errorAlert).toHaveTextContent(
+      'Password must contain at least one lowercase letter'
+    );
   });
 
   it('should show error for password missing uppercase', async () => {
@@ -165,19 +181,23 @@ describe('Signup Component', () => {
 
     const passwordInput = screen.getByLabelText('Password');
     const confirmPasswordInput = screen.getByLabelText('Confirm Password');
-    const form = screen.getByRole('button', {
-      name: /create account/i,
-    }).closest('form') as HTMLFormElement;
+    const form = screen
+      .getByRole('button', {
+        name: /create account/i,
+      })
+      .closest('form') as HTMLFormElement;
 
     await user.type(passwordInput, 'password123');
     await user.type(confirmPasswordInput, 'password123');
-    
+
     await act(async () => {
       fireEvent.submit(form);
     });
 
     const errorAlert = await screen.findByRole('alert');
-    expect(errorAlert).toHaveTextContent('Password must contain at least one uppercase letter');
+    expect(errorAlert).toHaveTextContent(
+      'Password must contain at least one uppercase letter'
+    );
   });
 
   it('should show error for password missing number', async () => {
@@ -186,19 +206,23 @@ describe('Signup Component', () => {
 
     const passwordInput = screen.getByLabelText('Password');
     const confirmPasswordInput = screen.getByLabelText('Confirm Password');
-    const form = screen.getByRole('button', {
-      name: /create account/i,
-    }).closest('form') as HTMLFormElement;
+    const form = screen
+      .getByRole('button', {
+        name: /create account/i,
+      })
+      .closest('form') as HTMLFormElement;
 
     await user.type(passwordInput, 'Password');
     await user.type(confirmPasswordInput, 'Password');
-    
+
     await act(async () => {
       fireEvent.submit(form);
     });
 
     const errorAlert = await screen.findByRole('alert');
-    expect(errorAlert).toHaveTextContent('Password must contain at least one number');
+    expect(errorAlert).toHaveTextContent(
+      'Password must contain at least one number'
+    );
   });
 
   it('should call signup and login on successful form submission', async () => {
@@ -224,12 +248,10 @@ describe('Signup Component', () => {
 
     vi.mocked(authService.authService.signup).mockImplementation(mockSignup);
     vi.mocked(authService.authService.login).mockImplementation(mockLogin);
-    vi.mocked(authService.authService.getCurrentUser).mockImplementation(
-      () => {
-        const userStr = localStorage.getItem('user');
-        return userStr ? JSON.parse(userStr) : null;
-      }
-    );
+    vi.mocked(authService.authService.getCurrentUser).mockImplementation(() => {
+      const userStr = localStorage.getItem('user');
+      return userStr ? JSON.parse(userStr) : null;
+    });
     vi.mocked(authService.authService.isAuthenticated).mockImplementation(
       () => !!localStorage.getItem('token')
     );
@@ -285,12 +307,10 @@ describe('Signup Component', () => {
 
     vi.mocked(authService.authService.signup).mockImplementation(mockSignup);
     vi.mocked(authService.authService.login).mockImplementation(mockLogin);
-    vi.mocked(authService.authService.getCurrentUser).mockImplementation(
-      () => {
-        const userStr = localStorage.getItem('user');
-        return userStr ? JSON.parse(userStr) : null;
-      }
-    );
+    vi.mocked(authService.authService.getCurrentUser).mockImplementation(() => {
+      const userStr = localStorage.getItem('user');
+      return userStr ? JSON.parse(userStr) : null;
+    });
     vi.mocked(authService.authService.isAuthenticated).mockImplementation(
       () => !!localStorage.getItem('token')
     );
@@ -346,7 +366,7 @@ describe('Signup Component', () => {
 
     await waitFor(() => {
       expect(
-        screen.getByText((content) =>
+        screen.getByText(content =>
           content.includes('User with this email already exists')
         )
       ).toBeInTheDocument();
@@ -385,12 +405,10 @@ describe('Signup Component', () => {
 
     vi.mocked(authService.authService.signup).mockImplementation(mockSignup);
     vi.mocked(authService.authService.login).mockImplementation(mockLogin);
-    vi.mocked(authService.authService.getCurrentUser).mockImplementation(
-      () => {
-        const userStr = localStorage.getItem('user');
-        return userStr ? JSON.parse(userStr) : null;
-      }
-    );
+    vi.mocked(authService.authService.getCurrentUser).mockImplementation(() => {
+      const userStr = localStorage.getItem('user');
+      return userStr ? JSON.parse(userStr) : null;
+    });
     vi.mocked(authService.authService.isAuthenticated).mockImplementation(
       () => !!localStorage.getItem('token')
     );
