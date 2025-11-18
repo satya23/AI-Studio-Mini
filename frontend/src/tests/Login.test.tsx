@@ -71,7 +71,9 @@ describe('Login Component', () => {
     renderLogin();
 
     const emailInput = screen.getByPlaceholderText('Email address');
-    await user.type(emailInput, 'test@example.com');
+    await act(async () => {
+      await user.type(emailInput, 'test@example.com');
+    });
 
     expect(emailInput).toHaveValue('test@example.com');
   });
@@ -81,7 +83,9 @@ describe('Login Component', () => {
     renderLogin();
 
     const passwordInput = screen.getByPlaceholderText('Password');
-    await user.type(passwordInput, 'Password123');
+    await act(async () => {
+      await user.type(passwordInput, 'Password123');
+    });
 
     expect(passwordInput).toHaveValue('Password123');
   });
@@ -120,10 +124,9 @@ describe('Login Component', () => {
     const passwordInput = screen.getByPlaceholderText('Password');
     const submitButton = screen.getByRole('button', { name: /sign in/i });
 
-    await user.type(emailInput, 'test@example.com');
-    await user.type(passwordInput, 'Password123');
-
     await act(async () => {
+      await user.type(emailInput, 'test@example.com');
+      await user.type(passwordInput, 'Password123');
       await user.click(submitButton);
     });
 
@@ -169,10 +172,9 @@ describe('Login Component', () => {
     const passwordInput = screen.getByPlaceholderText('Password');
     const submitButton = screen.getByRole('button', { name: /sign in/i });
 
-    await user.type(emailInput, 'test@example.com');
-    await user.type(passwordInput, 'Password123');
-
     await act(async () => {
+      await user.type(emailInput, 'test@example.com');
+      await user.type(passwordInput, 'Password123');
       await user.click(submitButton);
     });
 
@@ -199,16 +201,19 @@ describe('Login Component', () => {
     const passwordInput = screen.getByPlaceholderText('Password');
     const submitButton = screen.getByRole('button', { name: /sign in/i });
 
-    await user.type(emailInput, 'test@example.com');
-    await user.type(passwordInput, 'wrongpassword');
-
     await act(async () => {
+      await user.type(emailInput, 'test@example.com');
+      await user.type(passwordInput, 'wrongpassword');
       await user.click(submitButton);
     });
 
-    expect(
-      await screen.findByText('Invalid email or password')
-    ).toBeInTheDocument();
+    await waitFor(() => {
+      expect(
+        screen.getByText((content) =>
+          content.includes('Invalid email or password')
+        )
+      ).toBeInTheDocument();
+    });
   });
 
   it('should show loading state during login', async () => {
@@ -250,10 +255,9 @@ describe('Login Component', () => {
     const passwordInput = screen.getByPlaceholderText('Password');
     const submitButton = screen.getByRole('button', { name: /sign in/i });
 
-    await user.type(emailInput, 'test@example.com');
-    await user.type(passwordInput, 'Password123');
-
     await act(async () => {
+      await user.type(emailInput, 'test@example.com');
+      await user.type(passwordInput, 'Password123');
       await user.click(submitButton);
     });
 

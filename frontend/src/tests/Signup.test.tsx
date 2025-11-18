@@ -73,7 +73,9 @@ describe('Signup Component', () => {
     renderSignup();
 
     const emailInput = screen.getByLabelText('Email address');
-    await user.type(emailInput, 'test@example.com');
+    await act(async () => {
+      await user.type(emailInput, 'test@example.com');
+    });
 
     expect(emailInput).toHaveValue('test@example.com');
   });
@@ -85,8 +87,10 @@ describe('Signup Component', () => {
     const passwordInput = screen.getByLabelText('Password');
     const confirmPasswordInput = screen.getByLabelText('Confirm Password');
 
-    await user.type(passwordInput, 'Password123');
-    await user.type(confirmPasswordInput, 'Password123');
+    await act(async () => {
+      await user.type(passwordInput, 'Password123');
+      await user.type(confirmPasswordInput, 'Password123');
+    });
 
     expect(passwordInput).toHaveValue('Password123');
     expect(confirmPasswordInput).toHaveValue('Password123');
@@ -102,14 +106,17 @@ describe('Signup Component', () => {
       name: /create account/i,
     });
 
-    await user.type(passwordInput, 'Password123');
-    await user.type(confirmPasswordInput, 'DifferentPassword');
-
     await act(async () => {
+      await user.type(passwordInput, 'Password123');
+      await user.type(confirmPasswordInput, 'DifferentPassword');
       await user.click(submitButton);
     });
 
-    expect(await screen.findByText('Passwords do not match')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(
+        screen.getByText((content) => content.includes('Passwords do not match'))
+      ).toBeInTheDocument();
+    });
   });
 
   it('should show error for password too short', async () => {
@@ -122,16 +129,19 @@ describe('Signup Component', () => {
       name: /create account/i,
     });
 
-    await user.type(passwordInput, 'Short1');
-    await user.type(confirmPasswordInput, 'Short1');
-
     await act(async () => {
+      await user.type(passwordInput, 'Short1');
+      await user.type(confirmPasswordInput, 'Short1');
       await user.click(submitButton);
     });
 
-    expect(
-      await screen.findByText('Password must be at least 8 characters long')
-    ).toBeInTheDocument();
+    await waitFor(() => {
+      expect(
+        screen.getByText((content) =>
+          content.includes('Password must be at least 8 characters long')
+        )
+      ).toBeInTheDocument();
+    });
   });
 
   it('should show error for password missing lowercase', async () => {
@@ -144,18 +154,21 @@ describe('Signup Component', () => {
       name: /create account/i,
     });
 
-    await user.type(passwordInput, 'PASSWORD123');
-    await user.type(confirmPasswordInput, 'PASSWORD123');
-
     await act(async () => {
+      await user.type(passwordInput, 'PASSWORD123');
+      await user.type(confirmPasswordInput, 'PASSWORD123');
       await user.click(submitButton);
     });
 
-    expect(
-      await screen.findByText(
-        'Password must contain at least one lowercase letter'
-      )
-    ).toBeInTheDocument();
+    await waitFor(() => {
+      expect(
+        screen.getByText((content) =>
+          content.includes(
+            'Password must contain at least one lowercase letter'
+          )
+        )
+      ).toBeInTheDocument();
+    });
   });
 
   it('should show error for password missing uppercase', async () => {
@@ -168,18 +181,21 @@ describe('Signup Component', () => {
       name: /create account/i,
     });
 
-    await user.type(passwordInput, 'password123');
-    await user.type(confirmPasswordInput, 'password123');
-
     await act(async () => {
+      await user.type(passwordInput, 'password123');
+      await user.type(confirmPasswordInput, 'password123');
       await user.click(submitButton);
     });
 
-    expect(
-      await screen.findByText(
-        'Password must contain at least one uppercase letter'
-      )
-    ).toBeInTheDocument();
+    await waitFor(() => {
+      expect(
+        screen.getByText((content) =>
+          content.includes(
+            'Password must contain at least one uppercase letter'
+          )
+        )
+      ).toBeInTheDocument();
+    });
   });
 
   it('should show error for password missing number', async () => {
@@ -192,16 +208,19 @@ describe('Signup Component', () => {
       name: /create account/i,
     });
 
-    await user.type(passwordInput, 'Password');
-    await user.type(confirmPasswordInput, 'Password');
-
     await act(async () => {
+      await user.type(passwordInput, 'Password');
+      await user.type(confirmPasswordInput, 'Password');
       await user.click(submitButton);
     });
 
-    expect(
-      await screen.findByText('Password must contain at least one number')
-    ).toBeInTheDocument();
+    await waitFor(() => {
+      expect(
+        screen.getByText((content) =>
+          content.includes('Password must contain at least one number')
+        )
+      ).toBeInTheDocument();
+    });
   });
 
   it('should call signup and login on successful form submission', async () => {
@@ -246,11 +265,10 @@ describe('Signup Component', () => {
       name: /create account/i,
     });
 
-    await user.type(emailInput, 'test@example.com');
-    await user.type(passwordInput, 'Password123');
-    await user.type(confirmPasswordInput, 'Password123');
-
     await act(async () => {
+      await user.type(emailInput, 'test@example.com');
+      await user.type(passwordInput, 'Password123');
+      await user.type(confirmPasswordInput, 'Password123');
       await user.click(submitButton);
     });
 
@@ -308,11 +326,10 @@ describe('Signup Component', () => {
       name: /create account/i,
     });
 
-    await user.type(emailInput, 'test@example.com');
-    await user.type(passwordInput, 'Password123');
-    await user.type(confirmPasswordInput, 'Password123');
-
     await act(async () => {
+      await user.type(emailInput, 'test@example.com');
+      await user.type(passwordInput, 'Password123');
+      await user.type(confirmPasswordInput, 'Password123');
       await user.click(submitButton);
     });
 
@@ -342,17 +359,20 @@ describe('Signup Component', () => {
       name: /create account/i,
     });
 
-    await user.type(emailInput, 'existing@example.com');
-    await user.type(passwordInput, 'Password123');
-    await user.type(confirmPasswordInput, 'Password123');
-
     await act(async () => {
+      await user.type(emailInput, 'existing@example.com');
+      await user.type(passwordInput, 'Password123');
+      await user.type(confirmPasswordInput, 'Password123');
       await user.click(submitButton);
     });
 
-    expect(
-      await screen.findByText('User with this email already exists')
-    ).toBeInTheDocument();
+    await waitFor(() => {
+      expect(
+        screen.getByText((content) =>
+          content.includes('User with this email already exists')
+        )
+      ).toBeInTheDocument();
+    });
   });
 
   it('should show loading state during signup', async () => {
@@ -406,11 +426,10 @@ describe('Signup Component', () => {
       name: /create account/i,
     });
 
-    await user.type(emailInput, 'test@example.com');
-    await user.type(passwordInput, 'Password123');
-    await user.type(confirmPasswordInput, 'Password123');
-
     await act(async () => {
+      await user.type(emailInput, 'test@example.com');
+      await user.type(passwordInput, 'Password123');
+      await user.type(confirmPasswordInput, 'Password123');
       await user.click(submitButton);
     });
 
