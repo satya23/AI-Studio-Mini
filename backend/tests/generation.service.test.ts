@@ -83,4 +83,76 @@ describe('GenerationService', () => {
       expect(result1.id).not.toBe(result2.id);
     });
   });
+
+  describe('getByUserId', () => {
+    it('should return all generations for a user', async () => {
+      const userId = 'user-123';
+      const input1 = {
+        prompt: 'Prompt 1',
+        style: 'style1',
+      };
+      const input2 = {
+        prompt: 'Prompt 2',
+        style: 'style2',
+      };
+
+      await GenerationService.create(userId, input1);
+      await GenerationService.create(userId, input2);
+
+      const results = await GenerationService.getByUserId(userId);
+
+      expect(results).toHaveLength(2);
+      expect(results[0].prompt).toBe('Prompt 2'); // Should be ordered by createdAt DESC
+      expect(results[1].prompt).toBe('Prompt 1');
+    });
+
+    it('should return empty array for user with no generations', async () => {
+      const results = await GenerationService.getByUserId('non-existent-user');
+      expect(results).toHaveLength(0);
+    });
+
+    it('should only return generations for the specified user', async () => {
+      const userId1 = 'user-1';
+      const userId2 = 'user-2';
+
+      await GenerationService.create(userId1, {
+        prompt: 'User 1 prompt',
+        style: 'style1',
+      });
+
+      await GenerationService.create(userId2, {
+        prompt: 'User 2 prompt',
+        style: 'style2',
+      });
+
+      const results = await GenerationService.getByUserId(userId1);
+
+      expect(results).toHaveLength(1);
+      expect(results[0].userId).toBe(userId1);
+      expect(results[0].prompt).toBe('User 1 prompt');
+    });
+
+    it('should return generations ordered by createdAt DESC', async () => {
+      const userId = 'user-123';
+
+      const gen1 = await GenerationService.create(userId, {
+        prompt: 'First prompt',
+        style: 'style1',
+      });
+
+      // Small delay to ensure different timestamps
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      const gen2 = await GenerationService.create(userId, {
+        prompt: 'Second prompt',
+        style: 'style2',
+      });
+
+      const results = await GenerationService.getByUserId(userId);
+
+      expect(results).toHaveLength(2);
+      expect(results[0].id).toBe(gen2.id); // Most recent first
+      expect(results[1].id).toBe(gen1.id);
+    });
+  });
 });

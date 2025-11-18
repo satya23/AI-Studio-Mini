@@ -31,6 +31,26 @@ export const createGeneration = async (
   }
 };
 
-export const getGenerations = async (_req: Request, _res: Response) => {
-  // TODO: Implement get generations logic
+export const getGenerations = async (
+  req: AuthenticatedRequest,
+  res: Response
+) => {
+  try {
+    // Get userId from authenticated request (will be set by auth middleware)
+    const userId = req.userId || 'anonymous'; // Temporary until auth is implemented
+
+    const generations = await GenerationService.getByUserId(userId);
+
+    res.status(200).json({
+      message: 'Generations retrieved successfully',
+      generations,
+      count: generations.length,
+    });
+  } catch (error) {
+    if (error instanceof Error) {
+      res.status(500).json({ message: error.message });
+    } else {
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  }
 };

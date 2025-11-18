@@ -192,3 +192,134 @@ describe('POST /generations', () => {
     });
   });
 });
+
+describe('GET /generations', () => {
+  beforeEach(() => {
+    // Clear generations and users tables before each test
+    db.exec('DELETE FROM generations');
+    db.exec('DELETE FROM users');
+  });
+
+  describe('Successful retrieval', () => {
+    it('should return all generations for the user', async () => {
+      // Create some generations
+      await request(app).post('/generations').send({
+        prompt: 'First generation',
+        style: 'realistic',
+      });
+
+      await request(app).post('/generations').send({
+        prompt: 'Second generation',
+        style: 'artistic',
+      });
+
+      const response = await request(app).get('/generations');
+
+      expect(response.status).toBe(200);
+      expect(response.body).toHaveProperty(
+        'message',
+        'Generations retrieved successfully'
+      );
+      expect(response.body).toHaveProperty('generations');
+      expect(response.body).toHaveProperty('count', 2);
+      expect(Array.isArray(response.body.generations)).toBe(true);
+      expect(response.body.generations).toHaveLength(2);
+    });
+
+    it('should return generations ordered by createdAt DESC', async () => {
+      // Create generations with a small delay
+      const response1 = await request(app).post('/generations').send({
+        prompt: 'First generation',
+        style: 'realistic',
+      });
+
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      const response2 = await request(app).post('/generations').send({
+        prompt: 'Second generation',
+        style: 'artistic',
+      });
+
+      const getResponse = await request(app).get('/generations');
+
+      expect(getResponse.status).toBe(200);
+      expect(getResponse.body.generations).toHaveLength(2);
+      // Most recent should be first
+      expect(getResponse.body.generations[0].id).toBe(
+        response2.body.generation.id
+      );
+      expect(getResponse.body.generations[1].id).toBe(
+        response1.body.generation.id
+      );
+    });
+
+    it('should return empty array when user has no generations', async () => {
+      const response = await request(app).get('/generations');
+
+      expect(response.status).toBe(200);
+      expect(response.body).toHaveProperty('generations');
+      expect(response.body).toHaveProperty('count', 0);
+      expect(response.body.generations).toHaveLength(0);
+      expect(Array.isArray(response.body.generations)).toBe(true);
+    });
+
+    it('should return generation with all required fields', async () => {
+      await request(app).post('/generations').send({
+        prompt: 'Test generation',
+        style: 'test',
+      });
+
+      const response = await request(app).get('/generations');
+
+      expect(response.status).toBe(200);
+      expect(response.body.generations).toHaveLength(1);
+
+      const generation = response.body.generations[0];
+      expect(generation).toHaveProperty('id');
+      expect(generation).toHaveProperty('userId');
+      expect(generation).toHaveProperty('prompt', 'Test generation');
+      expect(generation).toHaveProperty('style', 'test');
+      expect(generation).toHaveProperty('imageUrl');
+      expect(generation).toHaveProperty('status');
+      expect(generation).toHaveProperty('createdAt');
+    });
+  });
+
+  describe('Edge cases', () => {
+    it('should handle multiple generations correctly', async () => {
+      // Create 5 generations
+      for (let i = 0; i < 5; i++) {
+        await request(app)
+          .post('/generations')
+          .send({
+            prompt: `Generation ${i + 1}`,
+            style: 'style',
+          });
+      }
+
+      const response = await request(app).get('/generations');
+
+      expect(response.status).toBe(200);
+      expect(response.body.count).toBe(5);
+      expect(response.body.generations).toHaveLength(5);
+    });
+
+    it('should return correct count in response', async () => {
+      await request(app).post('/generations').send({
+        prompt: 'Generation 1',
+        style: 'style1',
+      });
+
+      await request(app).post('/generations').send({
+        prompt: 'Generation 2',
+        style: 'style2',
+      });
+
+      const response = await request(app).get('/generations');
+
+      expect(response.status).toBe(200);
+      expect(response.body.count).toBe(2);
+      expect(response.body.generations.length).toBe(response.body.count);
+    });
+  });
+});
