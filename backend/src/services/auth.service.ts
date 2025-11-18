@@ -61,9 +61,7 @@ export class AuthService {
     const token = jwt.sign(
       { id: user.id, email: user.email },
       JWT_SECRET,
-      {
-        expiresIn: JWT_EXPIRES_IN,
-      } as jwt.SignOptions,
+      { expiresIn: JWT_EXPIRES_IN } as jwt.SignOptions,
     );
 
     // Return user without password and token
