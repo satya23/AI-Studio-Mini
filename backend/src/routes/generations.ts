@@ -5,10 +5,17 @@ import {
 } from '../controllers/generations.controller.js';
 import { validateRequest } from '../utils/validation.js';
 import { createGenerationSchema } from '../schemas/generation.schema.js';
+import { authenticateToken } from '../middleware/auth.middleware.js';
 
 const router = Router();
 
-router.post('/', validateRequest(createGenerationSchema), createGeneration);
-router.get('/', getGenerations);
+// Protect generation routes with authentication
+router.post(
+  '/',
+  authenticateToken,
+  validateRequest(createGenerationSchema),
+  createGeneration
+);
+router.get('/', authenticateToken, getGenerations);
 
 export default router;

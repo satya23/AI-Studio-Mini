@@ -25,7 +25,7 @@ describe('GenerationService', () => {
       expect(result).toHaveProperty('style', 'realistic');
       expect(result).toHaveProperty('imageUrl');
       expect(result.imageUrl).toContain('placeholder.com');
-      expect(result).toHaveProperty('status', 'pending');
+      expect(result).toHaveProperty('status', 'completed');
       expect(result).toHaveProperty('createdAt');
     });
 
@@ -57,7 +57,7 @@ describe('GenerationService', () => {
       expect(found?.prompt).toBe('Test prompt');
     });
 
-    it('should create generation with pending status', async () => {
+    it('should create generation with completed status', async () => {
       const userId = 'user-123';
       const input = {
         prompt: 'Test prompt',
@@ -66,7 +66,36 @@ describe('GenerationService', () => {
 
       const result = await GenerationService.create(userId, input);
 
-      expect(result.status).toBe('pending');
+      expect(result.status).toBe('completed');
+    });
+
+    it('should simulate generation delay (1-2 seconds)', async () => {
+      const userId = 'user-123';
+      const input = {
+        prompt: 'Test prompt',
+        style: 'test',
+      };
+
+      const startTime = Date.now();
+      await GenerationService.create(userId, input);
+      const endTime = Date.now();
+
+      const duration = endTime - startTime;
+      expect(duration).toBeGreaterThanOrEqual(1000);
+      expect(duration).toBeLessThan(3000); // Allow some buffer
+    });
+
+    it('should use imageUpload if provided', async () => {
+      const userId = 'user-123';
+      const input = {
+        prompt: 'Test prompt',
+        style: 'test',
+        imageUpload: 'https://example.com/custom-image.jpg',
+      };
+
+      const result = await GenerationService.create(userId, input);
+
+      expect(result.imageUrl).toBe('https://example.com/custom-image.jpg');
     });
 
     it('should handle different user IDs', async () => {
@@ -153,6 +182,38 @@ describe('GenerationService', () => {
       expect(results).toHaveLength(2);
       expect(results[0].id).toBe(gen2.id); // Most recent first
       expect(results[1].id).toBe(gen1.id);
+    });
+
+    it('should respect limit parameter', async () => {
+      const userId = 'user-123';
+
+      // Create 5 generations
+      for (let i = 0; i < 5; i++) {
+        await GenerationService.create(userId, {
+          prompt: `Prompt ${i + 1}`,
+          style: 'style',
+        });
+      }
+
+      const results = await GenerationService.getByUserId(userId, 3);
+
+      expect(results).toHaveLength(3);
+    });
+
+    it('should return all generations when limit is not provided', async () => {
+      const userId = 'user-123';
+
+      // Create 3 generations
+      for (let i = 0; i < 3; i++) {
+        await GenerationService.create(userId, {
+          prompt: `Prompt ${i + 1}`,
+          style: 'style',
+        });
+      }
+
+      const results = await GenerationService.getByUserId(userId);
+
+      expect(results).toHaveLength(3);
     });
   });
 });
