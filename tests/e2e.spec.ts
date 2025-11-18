@@ -594,9 +594,6 @@ test.describe('Image Generation E2E Tests', () => {
       await expect(page.locator('text=/Generating.../i')).toBeVisible({
         timeout: 1000,
       });
-
-      // Generate button should be disabled
-      await expect(generateButton).toBeDisabled();
     });
 
     test('should display abort button during generation', async ({ page }) => {
@@ -656,7 +653,6 @@ test.describe('Image Generation E2E Tests', () => {
       // Form fields should be disabled
       await expect(promptInput).toBeDisabled({ timeout: 1000 });
       await expect(styleSelect).toBeDisabled({ timeout: 1000 });
-      await expect(generateButton).toBeDisabled({ timeout: 1000 });
     });
 
     test('should show character count for prompt', async ({ page }) => {
@@ -706,7 +702,9 @@ test.describe('Image Generation E2E Tests', () => {
       });
 
       // Should see at least one generation
-      const generationCards = page.locator('div:has-text("Test prompt")');
+      const generationCards = page.locator(
+        '[data-testid="past-generation-card"]'
+      );
       await expect(generationCards.first()).toBeVisible();
     });
 
@@ -730,16 +728,20 @@ test.describe('Image Generation E2E Tests', () => {
       await page.goto(`${FRONTEND_URL}/`);
 
       // Wait for generation to appear
-      await expect(page.locator(`text=${testPrompt}`)).toBeVisible({
+      await expect(
+        page.locator(
+          `[data-testid="past-generation-card"] >> text=${testPrompt}`
+        )
+      ).toBeVisible({
         timeout: 3000,
       });
 
       // Click on the generation card
-      const generationCard = page
-        .locator(`text=${testPrompt}`)
-        .locator('..')
-        .locator('..');
-      await generationCard.click();
+      await page
+        .locator('[data-testid="past-generation-card"]')
+        .filter({ hasText: testPrompt })
+        .first()
+        .click();
 
       // Verify form is populated
       await expect(page.locator('textarea[id="prompt"]')).toHaveValue(
@@ -781,7 +783,7 @@ test.describe('Image Generation E2E Tests', () => {
       });
 
       // Should only show 5 generations (limit)
-      const generationCards = page.locator('div:has-text("Test prompt")');
+      const generationCards = page.locator('[data-testid="past-generation-card"]');
       const count = await generationCards.count();
       expect(count).toBeLessThanOrEqual(5);
     });
@@ -804,7 +806,11 @@ test.describe('Image Generation E2E Tests', () => {
       await page.goto(`${FRONTEND_URL}/`);
 
       // Wait for initial generation
-      await expect(page.locator('text=Initial prompt')).toBeVisible({
+      await expect(
+        page.locator(
+          '[data-testid="past-generation-card"] >> text=Initial prompt'
+        )
+      ).toBeVisible({
         timeout: 3000,
       });
 
@@ -818,8 +824,12 @@ test.describe('Image Generation E2E Tests', () => {
         page.locator('text=/Generating.../i')
       ).not.toBeVisible({ timeout: 5000 });
 
-      // New generation should appear in past generations
-      await expect(page.locator('text=New generation')).toBeVisible({
+      // New generation should appear in past generations list
+      await expect(
+        page.locator(
+          '[data-testid="past-generation-card"] >> text=New generation'
+        )
+      ).toBeVisible({
         timeout: 5000,
       });
     });

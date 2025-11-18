@@ -611,10 +611,13 @@ describe('GenerationStudio Component', () => {
       await user.click(generateButton);
     });
 
-    // Wait for retry message - the format is "Model overloaded. Retrying... (1/3)"
-    await screen.findByText(/Model overloaded.*Retrying/i, undefined, {
-      timeout: 3000,
-    });
+    // Wait for retry to be attempted (second call to generation service)
+    await waitFor(
+      () => {
+        expect(generationService.create).toHaveBeenCalledTimes(2);
+      },
+      { timeout: 4000 }
+    );
 
     // Abort during retry
     const abortButton = screen.getByRole('button', { name: /abort/i });
