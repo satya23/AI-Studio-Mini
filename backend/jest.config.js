@@ -8,9 +8,7 @@ export default {
       'ts-jest',
       {
         useESM: true,
-        tsconfig: {
-          types: ['jest', 'node'],
-        },
+        tsconfig: '<rootDir>/tsconfig.jest.json',
       },
     ],
   },

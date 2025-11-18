@@ -1,15 +1,22 @@
 /// <reference types="jest" />
 import { GenerationModel } from '../src/models/generation.model.js';
-import db from '../src/db/database.js';
+import { UserModel } from '../src/models/user.model.js';
+import { clearDatabase } from '../src/db/database.js';
+
+const createUserForId = async (userId: string) => {
+  await UserModel.create({
+    email: `${userId}-${Date.now()}@example.com`,
+    password: 'password123',
+  });
+};
 
 describe('GenerationModel', () => {
-  beforeEach(() => {
-    // Clear generations table before each test
-    db.exec('DELETE FROM generations');
+  beforeEach(async () => {
+    await clearDatabase();
   });
 
   describe('create', () => {
-    it('should create a new generation successfully', () => {
+    it('should create a new generation successfully', async () => {
       const generationData = {
         userId: 'user-123',
         prompt: 'A beautiful sunset over mountains',
@@ -18,7 +25,8 @@ describe('GenerationModel', () => {
         status: 'pending' as const,
       };
 
-      const result = GenerationModel.create(generationData);
+      await createUserForId(generationData.userId);
+      const result = await GenerationModel.create(generationData);
 
       expect(result).toHaveProperty('id');
       expect(result).toHaveProperty('userId', 'user-123');
@@ -36,7 +44,7 @@ describe('GenerationModel', () => {
       expect(result.createdAt).toBeInstanceOf(Date);
     });
 
-    it('should generate unique IDs for different generations', () => {
+    it('should generate unique IDs for different generations', async () => {
       const generationData1 = {
         userId: 'user-123',
         prompt: 'Prompt 1',
@@ -53,13 +61,14 @@ describe('GenerationModel', () => {
         status: 'pending' as const,
       };
 
-      const gen1 = GenerationModel.create(generationData1);
-      const gen2 = GenerationModel.create(generationData2);
+      await createUserForId(generationData1.userId);
+      const gen1 = await GenerationModel.create(generationData1);
+      const gen2 = await GenerationModel.create(generationData2);
 
       expect(gen1.id).not.toBe(gen2.id);
     });
 
-    it('should set createdAt timestamp', () => {
+    it('should set createdAt timestamp', async () => {
       const generationData = {
         userId: 'user-123',
         prompt: 'Test prompt',
@@ -69,7 +78,8 @@ describe('GenerationModel', () => {
       };
 
       const before = new Date();
-      const result = GenerationModel.create(generationData);
+      await createUserForId(generationData.userId);
+      const result = await GenerationModel.create(generationData);
       const after = new Date();
 
       expect(result.createdAt.getTime()).toBeGreaterThanOrEqual(
@@ -80,7 +90,7 @@ describe('GenerationModel', () => {
   });
 
   describe('findByUserId', () => {
-    it('should return all generations for a user', () => {
+    it('should return all generations for a user', async () => {
       const userId = 'user-123';
       const generationData1 = {
         userId,
@@ -97,26 +107,28 @@ describe('GenerationModel', () => {
         status: 'completed' as const,
       };
 
-      GenerationModel.create(generationData1);
-      GenerationModel.create(generationData2);
+      await createUserForId(userId);
+      await GenerationModel.create(generationData1);
+      await GenerationModel.create(generationData2);
 
-      const results = GenerationModel.findByUserId(userId);
+      const results = await GenerationModel.findByUserId(userId);
 
       expect(results).toHaveLength(2);
       expect(results[0].prompt).toBe('Prompt 2'); // Should be ordered by createdAt DESC
       expect(results[1].prompt).toBe('Prompt 1');
     });
 
-    it('should return empty array for user with no generations', () => {
-      const results = GenerationModel.findByUserId('non-existent-user');
+    it('should return empty array for user with no generations', async () => {
+      const results = await GenerationModel.findByUserId('non-existent-user');
       expect(results).toHaveLength(0);
     });
 
-    it('should only return generations for the specified user', () => {
+    it('should only return generations for the specified user', async () => {
       const userId1 = 'user-123';
       const userId2 = 'user-456';
 
-      GenerationModel.create({
+      await createUserForId(userId1);
+      await GenerationModel.create({
         userId: userId1,
         prompt: 'User 1 prompt',
         style: 'style1',
@@ -124,7 +136,8 @@ describe('GenerationModel', () => {
         status: 'pending' as const,
       });
 
-      GenerationModel.create({
+      await createUserForId(userId2);
+      await GenerationModel.create({
         userId: userId2,
         prompt: 'User 2 prompt',
         style: 'style2',
@@ -132,7 +145,7 @@ describe('GenerationModel', () => {
         status: 'pending' as const,
       });
 
-      const results = GenerationModel.findByUserId(userId1);
+      const results = await GenerationModel.findByUserId(userId1);
       expect(results).toHaveLength(1);
       expect(results[0].userId).toBe(userId1);
       expect(results[0].prompt).toBe('User 1 prompt');
@@ -140,7 +153,7 @@ describe('GenerationModel', () => {
   });
 
   describe('findById', () => {
-    it('should return generation by id', () => {
+    it('should return generation by id', async () => {
       const generationData = {
         userId: 'user-123',
         prompt: 'Test prompt',
@@ -149,16 +162,17 @@ describe('GenerationModel', () => {
         status: 'pending' as const,
       };
 
-      const created = GenerationModel.create(generationData);
-      const found = GenerationModel.findById(created.id);
+      await createUserForId(generationData.userId);
+      const created = await GenerationModel.create(generationData);
+      const found = await GenerationModel.findById(created.id);
 
       expect(found).not.toBeNull();
       expect(found?.id).toBe(created.id);
       expect(found?.prompt).toBe('Test prompt');
     });
 
-    it('should return null for non-existent id', () => {
-      const found = GenerationModel.findById('non-existent-id');
+    it('should return null for non-existent id', async () => {
+      const found = await GenerationModel.findById('non-existent-id');
       expect(found).toBeNull();
     });
   });

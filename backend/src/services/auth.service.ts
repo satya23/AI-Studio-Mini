@@ -14,7 +14,7 @@ export class AuthService {
     createdAt: Date;
   }> {
     // Check if user already exists
-    const existingUser = UserModel.findByEmail(input.email);
+    const existingUser = await UserModel.findByEmail(input.email);
     if (existingUser) {
       throw new Error('User with this email already exists');
     }
@@ -24,7 +24,7 @@ export class AuthService {
     const hashedPassword = await bcrypt.hash(input.password, saltRounds);
 
     // Create user
-    const user = UserModel.create({
+    const user = await UserModel.create({
       email: input.email,
       password: hashedPassword,
     });
@@ -46,7 +46,7 @@ export class AuthService {
     token: string;
   }> {
     // Find user by email
-    const user = UserModel.findByEmail(input.email);
+    const user = await UserModel.findByEmail(input.email);
     if (!user) {
       throw new Error('Invalid email or password');
     }

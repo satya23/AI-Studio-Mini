@@ -1,13 +1,12 @@
 /// <reference types="jest" />
 import { AuthService } from '../src/services/auth.service.js';
 import { UserModel } from '../src/models/user.model.js';
-import db from '../src/db/database.js';
+import { clearDatabase } from '../src/db/database.js';
 import jwt from 'jsonwebtoken';
 
 describe('AuthService', () => {
-  beforeEach(() => {
-    // Clear users table before each test
-    db.exec('DELETE FROM users');
+  beforeEach(async () => {
+    await clearDatabase();
   });
 
   describe('signup', () => {
@@ -25,7 +24,7 @@ describe('AuthService', () => {
       expect(result).not.toHaveProperty('password');
 
       // Verify user was created in database
-      const user = UserModel.findByEmail('test@example.com');
+      const user = await UserModel.findByEmail('test@example.com');
       expect(user).not.toBeNull();
       expect(user?.email).toBe('test@example.com');
     });
@@ -38,7 +37,7 @@ describe('AuthService', () => {
 
       await AuthService.signup(input);
 
-      const user = UserModel.findByEmail('test2@example.com');
+      const user = await UserModel.findByEmail('test2@example.com');
       expect(user?.password).not.toBe('Password123');
       expect(user?.password.length).toBeGreaterThan(20); // bcrypt hash is long
     });

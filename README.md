@@ -32,7 +32,7 @@ This project is structured as a monorepo with separate frontend and backend appl
    cd backend
    npm run dev
    ```
-   Server will run on `http://localhost:5000`
+   Server will run on `http://localhost:5050`
 
 4. **Start Frontend Development Server**
    ```bash
@@ -48,7 +48,7 @@ docker-compose up
 ```
 
 This will start:
-- Backend API on `http://localhost:5000`
+- Backend API on `http://localhost:5050`
 - Frontend on `http://localhost:3000`
 - PostgreSQL database (optional, currently using SQLite)
 
@@ -198,7 +198,7 @@ See [EVAL.md](./EVAL.md) for tracking of implemented features and tests.
    ```bash
    cd frontend
    # Create .env file if needed
-   VITE_API_URL=http://localhost:5000
+   VITE_API_URL=http://localhost:5050
    ```
    
    Backend (optional - defaults provided):
@@ -208,7 +208,7 @@ See [EVAL.md](./EVAL.md) for tracking of implemented features and tests.
    JWT_SECRET=your-secret-key-change-in-production
    JWT_EXPIRES_IN=7d
    NODE_ENV=development
-   PORT=5000
+   PORT=5050
    ```
 
 4. **Start development servers**
@@ -231,8 +231,8 @@ See [EVAL.md](./EVAL.md) for tracking of implemented features and tests.
 
 5. **Access the application**
    - Frontend: http://localhost:3000
-   - Backend API: http://localhost:5000
-   - Health Check: http://localhost:5000/health
+   - Backend API: http://localhost:5050
+   - Health Check: http://localhost:5050/health
 
 #### Running Tests
 

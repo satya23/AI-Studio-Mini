@@ -46,7 +46,7 @@ export default defineConfig({
   webServer: [
     {
       command: 'cd backend && npm run dev',
-      url: 'http://localhost:5000/health',
+      url: 'http://localhost:5050/health',
       reuseExistingServer: !process.env.CI,
       timeout: 120 * 1000,
     },

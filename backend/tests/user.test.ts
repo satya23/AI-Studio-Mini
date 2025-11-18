@@ -1,16 +1,16 @@
 /// <reference types="jest" />
 import { UserModel } from '../src/models/user.model.js';
-import db from '../src/db/database.js';
+import { clearDatabase } from '../src/db/database.js';
 
 describe('UserModel', () => {
-  beforeEach(() => {
-    db.exec('DELETE FROM users');
+  beforeEach(async () => {
+    await clearDatabase();
   });
 
   describe('create', () => {
-    it('should create a user with all required fields', () => {
+    it('should create a user with all required fields', async () => {
       const hashedPassword = 'hashed_password_123';
-      const user = UserModel.create({
+      const user = await UserModel.create({
         email: 'test@example.com',
         password: hashedPassword,
       });
@@ -21,13 +21,13 @@ describe('UserModel', () => {
       expect(user.createdAt).toBeInstanceOf(Date);
     });
 
-    it('should generate unique IDs', () => {
-      const user1 = UserModel.create({
+    it('should generate unique IDs', async () => {
+      const user1 = await UserModel.create({
         email: 'user1@example.com',
         password: 'password1',
       });
 
-      const user2 = UserModel.create({
+      const user2 = await UserModel.create({
         email: 'user2@example.com',
         password: 'password2',
       });
@@ -37,42 +37,42 @@ describe('UserModel', () => {
   });
 
   describe('findByEmail', () => {
-    it('should find user by email', () => {
+    it('should find user by email', async () => {
       const hashedPassword = 'hashed_password_123';
-      const createdUser = UserModel.create({
+      const createdUser = await UserModel.create({
         email: 'findme@example.com',
         password: hashedPassword,
       });
 
-      const foundUser = UserModel.findByEmail('findme@example.com');
+      const foundUser = await UserModel.findByEmail('findme@example.com');
 
       expect(foundUser).not.toBeNull();
       expect(foundUser?.id).toBe(createdUser.id);
       expect(foundUser?.email).toBe('findme@example.com');
     });
 
-    it('should return null if user not found', () => {
-      const foundUser = UserModel.findByEmail('nonexistent@example.com');
+    it('should return null if user not found', async () => {
+      const foundUser = await UserModel.findByEmail('nonexistent@example.com');
       expect(foundUser).toBeNull();
     });
   });
 
   describe('findById', () => {
-    it('should find user by id', () => {
-      const createdUser = UserModel.create({
+    it('should find user by id', async () => {
+      const createdUser = await UserModel.create({
         email: 'findbyid@example.com',
         password: 'password123',
       });
 
-      const foundUser = UserModel.findById(createdUser.id);
+      const foundUser = await UserModel.findById(createdUser.id);
 
       expect(foundUser).not.toBeNull();
       expect(foundUser?.id).toBe(createdUser.id);
       expect(foundUser?.email).toBe('findbyid@example.com');
     });
 
-    it('should return null if user not found', () => {
-      const foundUser = UserModel.findById('nonexistent-id');
+    it('should return null if user not found', async () => {
+      const foundUser = await UserModel.findById('nonexistent-id');
       expect(foundUser).toBeNull();
     });
   });

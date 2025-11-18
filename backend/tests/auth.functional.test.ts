@@ -1,12 +1,11 @@
 /// <reference types="jest" />
 import request from 'supertest';
 import app from '../src/index.js';
-import db from '../src/db/database.js';
+import { clearDatabase } from '../src/db/database.js';
 
 describe('POST /auth/signup', () => {
-  beforeEach(() => {
-    // Clear users table before each test
-    db.exec('DELETE FROM users');
+  beforeEach(async () => {
+    await clearDatabase();
   });
 
   describe('Successful signup', () => {
@@ -140,9 +139,8 @@ describe('POST /auth/signup', () => {
 });
 
 describe('POST /auth/login', () => {
-  beforeEach(() => {
-    // Clear users table before each test
-    db.exec('DELETE FROM users');
+  beforeEach(async () => {
+    await clearDatabase();
   });
 
   describe('Successful login', () => {

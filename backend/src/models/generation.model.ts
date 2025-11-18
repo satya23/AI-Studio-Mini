@@ -1,24 +1,27 @@
-import db from '../db/database.js';
+import { getDatabase, saveDatabase } from '../db/database.js';
 import { Generation } from '../types/index.js';
 
 export class GenerationModel {
-  static create(generation: Omit<Generation, 'id' | 'createdAt'>): Generation {
+  static async create(
+    generation: Omit<Generation, 'id' | 'createdAt'>
+  ): Promise<Generation> {
     const id = crypto.randomUUID();
     const createdAt = new Date().toISOString();
 
-    const stmt = db.prepare(
-      'INSERT INTO generations (id, userId, prompt, style, imageUrl, status, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?)'
+    const db = await getDatabase();
+    db.run(
+      'INSERT INTO generations (id, userId, prompt, style, imageUrl, status, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [
+        id,
+        generation.userId,
+        generation.prompt,
+        generation.style,
+        generation.imageUrl,
+        generation.status,
+        createdAt,
+      ]
     );
-
-    stmt.run(
-      id,
-      generation.userId,
-      generation.prompt,
-      generation.style,
-      generation.imageUrl,
-      generation.status,
-      createdAt
-    );
+    await saveDatabase();
 
     return {
       id,
@@ -31,11 +34,13 @@ export class GenerationModel {
     };
   }
 
-  static findByUserId(userId: string): Generation[] {
+  static async findByUserId(userId: string): Promise<Generation[]> {
+    const db = await getDatabase();
     const stmt = db.prepare(
       'SELECT * FROM generations WHERE userId = ? ORDER BY createdAt DESC'
     );
-    const rows = stmt.all(userId) as Array<{
+    stmt.bind([userId]);
+    const rows: Array<{
       id: string;
       userId: string;
       prompt: string;
@@ -43,7 +48,13 @@ export class GenerationModel {
       imageUrl: string;
       status: string;
       createdAt: string;
-    }>;
+    }> = [];
+
+    while (stmt.step()) {
+      rows.push(stmt.getAsObject() as (typeof rows)[number]);
+    }
+
+    stmt.free();
 
     return rows.map(row => ({
       id: row.id,
@@ -56,10 +67,12 @@ export class GenerationModel {
     }));
   }
 
-  static findById(id: string): Generation | null {
+  static async findById(id: string): Promise<Generation | null> {
+    const db = await getDatabase();
     const stmt = db.prepare('SELECT * FROM generations WHERE id = ?');
-    const row = stmt.get(id) as
-      | {
+    stmt.bind([id]);
+    const row = stmt.step()
+      ? (stmt.getAsObject() as {
           id: string;
           userId: string;
           prompt: string;
@@ -67,8 +80,9 @@ export class GenerationModel {
           imageUrl: string;
           status: string;
           createdAt: string;
-        }
-      | undefined;
+        })
+      : undefined;
+    stmt.free();
 
     if (!row) {
       return null;

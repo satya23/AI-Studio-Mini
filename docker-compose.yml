@@ -6,10 +6,10 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     ports:
-      - "5000:5000"
+      - "5050:5050"
     environment:
       - NODE_ENV=development
-      - PORT=5000
+      - PORT=5050
       - JWT_SECRET=your-secret-key-change-in-production
       - DATABASE_PATH=./data/database.db
     volumes:
@@ -27,7 +27,7 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - VITE_API_URL=http://localhost:5000
+      - VITE_API_URL=http://localhost:5050
     volumes:
       - ./frontend:/app
       - /app/node_modules
