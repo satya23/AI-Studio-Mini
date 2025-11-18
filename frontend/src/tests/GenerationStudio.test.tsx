@@ -190,7 +190,7 @@ describe('GenerationStudio Component', () => {
       prompt: 'A beautiful sunset',
       style: 'Realistic',
       createdAt: new Date().toISOString(),
-      status: 'completed',
+      status: 'completed' as const,
     };
 
     vi.mocked(generationService.getGenerations)
@@ -510,7 +510,9 @@ describe('GenerationStudio Component', () => {
             expect(anyOverloadedError).toBeInTheDocument();
           } else {
             // If no error message found, check if button is enabled (which means retries completed)
-            const button = screen.getByRole('button', { name: /generate/i });
+            const button = screen.getByRole('button', {
+              name: /generate/i,
+            }) as HTMLButtonElement;
             if (!button.disabled) {
               // Button is enabled, so retries completed, but error message might not be showing
               // This is acceptable - the test verifies the retry mechanism worked
@@ -724,7 +726,7 @@ describe('GenerationStudio Component', () => {
       prompt: 'New prompt',
       style: 'Anime',
       createdAt: new Date().toISOString(),
-      status: 'completed',
+      status: 'completed' as const,
     };
 
     vi.mocked(generationService.getGenerations)
