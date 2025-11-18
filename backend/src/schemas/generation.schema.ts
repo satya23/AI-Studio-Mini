@@ -9,6 +9,7 @@ export const createGenerationSchema = z.object({
     .string()
     .min(1, 'Style is required')
     .max(100, 'Style must be at most 100 characters'),
+  imageUpload: z.string().optional(), // Optional image upload URL or base64
 });
 
 export type CreateGenerationInput = z.infer<typeof createGenerationSchema>;

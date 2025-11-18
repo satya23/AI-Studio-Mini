@@ -12,19 +12,28 @@ export const createGeneration = async (
   res: Response
 ) => {
   try {
-    // Get userId from authenticated request (will be set by auth middleware)
-    const userId = req.userId || 'anonymous'; // Temporary until auth is implemented
+    // Get userId from authenticated request (set by auth middleware)
+    const userId = req.userId!; // Auth middleware ensures this exists
 
     const input: CreateGenerationInput = req.body;
     const generation = await GenerationService.create(userId, input);
 
+    // Return only the required fields
     res.status(201).json({
-      message: 'Generation created successfully',
-      generation,
+      id: generation.id,
+      imageUrl: generation.imageUrl,
+      prompt: generation.prompt,
+      style: generation.style,
+      createdAt: generation.createdAt,
+      status: generation.status,
     });
   } catch (error) {
     if (error instanceof Error) {
-      res.status(500).json({ message: error.message });
+      if (error.message === 'Model overloaded') {
+        res.status(503).json({ message: 'Model overloaded' });
+      } else {
+        res.status(500).json({ message: error.message });
+      }
     } else {
       res.status(500).json({ message: 'Internal server error' });
     }
@@ -36,10 +45,19 @@ export const getGenerations = async (
   res: Response
 ) => {
   try {
-    // Get userId from authenticated request (will be set by auth middleware)
-    const userId = req.userId || 'anonymous'; // Temporary until auth is implemented
+    // Get userId from authenticated request (set by auth middleware)
+    const userId = req.userId!; // Auth middleware ensures this exists
 
-    const generations = await GenerationService.getByUserId(userId);
+    // Parse limit query parameter (default to 5 if not provided)
+    const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 5;
+
+    // Validate limit
+    if (isNaN(limit) || limit < 1) {
+      res.status(400).json({ message: 'Invalid limit parameter' });
+      return;
+    }
+
+    const generations = await GenerationService.getByUserId(userId, limit);
 
     res.status(200).json({
       message: 'Generations retrieved successfully',
