@@ -615,7 +615,9 @@ describe('GenerationStudio Component', () => {
     // Wait for retry message to appear (indicates retry has started)
     await waitFor(
       () => {
-        expect(screen.getByText(/Model overloaded.*Retrying/i)).toBeInTheDocument();
+        expect(
+          screen.getByText(/Model overloaded.*Retrying/i)
+        ).toBeInTheDocument();
       },
       { timeout: 4000 }
     );
