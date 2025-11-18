@@ -28,4 +28,8 @@ export class GenerationService {
 
     return generation;
   }
+
+  static async getByUserId(userId: string): Promise<Generation[]> {
+    return GenerationModel.findByUserId(userId);
+  }
 }
