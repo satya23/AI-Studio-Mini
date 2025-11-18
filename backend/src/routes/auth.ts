@@ -1,14 +1,11 @@
-import { Router, Request, Response } from 'express';
+import { Router } from 'express';
+import { signup, login } from '../controllers/auth.controller.js';
+import { validateRequest } from '../utils/validation.js';
+import { signupSchema } from '../schemas/auth.schema.js';
 
 const router = Router();
 
-// Placeholder routes - will be implemented in future PRs
-router.post('/signup', (_req: Request, res: Response) => {
-  res.status(501).json({ message: 'Not implemented yet' });
-});
-
-router.post('/login', (_req: Request, res: Response) => {
-  res.status(501).json({ message: 'Not implemented yet' });
-});
+router.post('/signup', validateRequest(signupSchema), signup);
+router.post('/login', login);
 
 export default router;
