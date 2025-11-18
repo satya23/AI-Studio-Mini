@@ -219,9 +219,13 @@ describe('Login Component', () => {
       email: 'test@example.com',
       createdAt: new Date().toISOString(),
     };
-    const mockLogin = vi.fn(
-      () =>
-        new Promise(resolve =>
+    const mockLogin = vi.fn().mockImplementation(
+      async () =>
+        new Promise<{
+          message: string;
+          user: typeof mockUser;
+          token: string;
+        }>(resolve =>
           setTimeout(() => {
             localStorage.setItem('token', 'mock-token');
             localStorage.setItem('user', JSON.stringify(mockUser));

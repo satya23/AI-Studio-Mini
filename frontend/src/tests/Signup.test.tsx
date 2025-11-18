@@ -232,10 +232,15 @@ describe('Signup Component', () => {
       email: 'test@example.com',
       createdAt: new Date().toISOString(),
     };
-    const mockSignup = vi.fn().mockResolvedValue({
-      message: 'User created successfully',
-      user: mockUser,
-    });
+    const mockSignup = vi
+      .fn()
+      .mockResolvedValue({
+        message: 'User created successfully',
+        user: mockUser,
+      } as {
+        message: string;
+        user: typeof mockUser;
+      });
     const mockLogin = vi.fn().mockImplementation(async () => {
       localStorage.setItem('token', 'mock-token');
       localStorage.setItem('user', JSON.stringify(mockUser));
@@ -243,6 +248,10 @@ describe('Signup Component', () => {
         message: 'Login successful',
         user: mockUser,
         token: 'mock-token',
+      } as {
+        message: string;
+        user: typeof mockUser;
+        token: string;
       };
     });
 
@@ -380,19 +389,24 @@ describe('Signup Component', () => {
       email: 'test@example.com',
       createdAt: new Date().toISOString(),
     };
-    const mockSignup = vi.fn(
-      () =>
-        new Promise(resolve =>
-          setTimeout(
-            () =>
-              resolve({
-                message: 'User created successfully',
-                user: mockUser,
-              }),
-            100
+    const mockSignup = vi
+      .fn()
+      .mockImplementation(
+        () =>
+          new Promise<{
+            message: string;
+            user: typeof mockUser;
+          }>(resolve =>
+            setTimeout(
+              () =>
+                resolve({
+                  message: 'User created successfully',
+                  user: mockUser,
+                }),
+              100
+            )
           )
-        )
-    );
+      );
     const mockLogin = vi.fn().mockImplementation(async () => {
       localStorage.setItem('token', 'mock-token');
       localStorage.setItem('user', JSON.stringify(mockUser));
@@ -400,6 +414,10 @@ describe('Signup Component', () => {
         message: 'Login successful',
         user: mockUser,
         token: 'mock-token',
+      } as {
+        message: string;
+        user: typeof mockUser;
+        token: string;
       };
     });
 
