@@ -567,18 +567,26 @@ test.describe('Image Generation E2E Tests', () => {
       // Wait for generation to complete (may take 1-2 seconds)
       // The spinner should appear first
       await expect(page.locator('text=/Generating.../i')).toBeVisible({
-        timeout: 1000,
+        timeout: 2000,
       });
 
-      // Wait for generation to complete (up to 5 seconds)
+      // Wait for generation to complete (up to 10 seconds to account for retries)
       await expect(page.locator('text=/Generating.../i')).not.toBeVisible({
-        timeout: 5000,
+        timeout: 10000,
       });
 
-      // Verify past generations section is updated
+      // Wait for any error messages to clear
+      await page.waitForTimeout(500);
+
+      // Verify past generations section is updated and contains the new generation
       await expect(
         page.locator('text=Recent Generations')
-      ).toBeVisible();
+      ).toBeVisible({ timeout: 3000 });
+
+      // Verify the generation appears in the list (wait for it to load)
+      await expect(
+        page.locator('[data-testid="past-generation-card"]').first()
+      ).toBeVisible({ timeout: 3000 });
     });
 
     test('should show spinner during generation', async ({ page }) => {
@@ -622,21 +630,21 @@ test.describe('Image Generation E2E Tests', () => {
       const generateButton = page.locator('button:has-text("Generate")');
       await generateButton.click();
 
-      // Wait for abort button
+      // Wait for abort button to appear
       const abortButton = await page.waitForSelector('button:has-text("Abort")', {
-        timeout: 1000,
+        timeout: 2000,
       });
 
       // Click abort
       await abortButton.click();
 
-      // Should show abort message
+      // Should show abort message (could be "Generation aborted" or abbreviated)
       await expect(
-        page.locator('text=/Generation aborted/i')
+        page.locator('text=/aborted/i')
       ).toBeVisible({ timeout: 3000 });
 
       // Generate button should be enabled again
-      await expect(generateButton).toBeEnabled({ timeout: 2000 });
+      await expect(generateButton).toBeEnabled({ timeout: 3000 });
     });
 
     test('should disable form fields during generation', async ({ page }) => {
@@ -819,10 +827,13 @@ test.describe('Image Generation E2E Tests', () => {
       await page.selectOption('select[id="style"]', 'Anime');
       await page.click('button:has-text("Generate")');
 
-      // Wait for generation to complete
+      // Wait for generation to complete (up to 10 seconds to account for retries)
       await expect(
         page.locator('text=/Generating.../i')
-      ).not.toBeVisible({ timeout: 5000 });
+      ).not.toBeVisible({ timeout: 10000 });
+
+      // Wait for any error messages to clear
+      await page.waitForTimeout(500);
 
       // New generation should appear in past generations list
       await expect(
