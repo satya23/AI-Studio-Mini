@@ -69,9 +69,20 @@ describe('AuthContext', () => {
       token: 'mock-token',
     };
 
-    vi.mocked(authService.authService.getCurrentUser).mockReturnValue(null);
-    vi.mocked(authService.authService.isAuthenticated).mockReturnValue(false);
-    vi.mocked(authService.authService.login).mockResolvedValue(mockResponse);
+    vi.mocked(authService.authService.getCurrentUser).mockImplementation(
+      () => {
+        const userStr = localStorage.getItem('user');
+        return userStr ? JSON.parse(userStr) : null;
+      }
+    );
+    vi.mocked(authService.authService.isAuthenticated).mockImplementation(
+      () => !!localStorage.getItem('token')
+    );
+    vi.mocked(authService.authService.login).mockImplementation(async () => {
+      localStorage.setItem('token', 'mock-token');
+      localStorage.setItem('user', JSON.stringify(mockUser));
+      return mockResponse;
+    });
 
     const { result } = renderHook(() => useAuth(), { wrapper });
 
@@ -103,14 +114,23 @@ describe('AuthContext', () => {
       token: 'mock-token',
     };
 
-    vi.mocked(authService.authService.getCurrentUser).mockReturnValue(null);
-    vi.mocked(authService.authService.isAuthenticated).mockReturnValue(false);
+    vi.mocked(authService.authService.getCurrentUser).mockImplementation(
+      () => {
+        const userStr = localStorage.getItem('user');
+        return userStr ? JSON.parse(userStr) : null;
+      }
+    );
+    vi.mocked(authService.authService.isAuthenticated).mockImplementation(
+      () => !!localStorage.getItem('token')
+    );
     vi.mocked(authService.authService.signup).mockResolvedValue(
       mockSignupResponse
     );
-    vi.mocked(authService.authService.login).mockResolvedValue(
-      mockLoginResponse
-    );
+    vi.mocked(authService.authService.login).mockImplementation(async () => {
+      localStorage.setItem('token', 'mock-token');
+      localStorage.setItem('user', JSON.stringify(mockUser));
+      return mockLoginResponse;
+    });
 
     const { result } = renderHook(() => useAuth(), { wrapper });
 
@@ -122,10 +142,10 @@ describe('AuthContext', () => {
       email: 'test@example.com',
       password: 'Password123',
     });
-    expect(authService.authService.login).toHaveBeenCalledWith(
-      'test@example.com',
-      'Password123'
-    );
+    expect(authService.authService.login).toHaveBeenCalledWith({
+      email: 'test@example.com',
+      password: 'Password123',
+    });
     expect(result.current.user).toEqual(mockUser);
   });
 

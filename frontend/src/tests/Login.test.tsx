@@ -88,13 +88,31 @@ describe('Login Component', () => {
 
   it('should call login function on form submit', async () => {
     const user = userEvent.setup();
-    const mockLogin = vi.fn().mockResolvedValue({
-      message: 'Login successful',
-      user: { id: '1', email: 'test@example.com', createdAt: new Date() },
-      token: 'mock-token',
+    const mockUser = {
+      id: '1',
+      email: 'test@example.com',
+      createdAt: new Date().toISOString(),
+    };
+    const mockLogin = vi.fn().mockImplementation(async () => {
+      localStorage.setItem('token', 'mock-token');
+      localStorage.setItem('user', JSON.stringify(mockUser));
+      return {
+        message: 'Login successful',
+        user: mockUser,
+        token: 'mock-token',
+      };
     });
 
     vi.mocked(authService.authService.login).mockImplementation(mockLogin);
+    vi.mocked(authService.authService.getCurrentUser).mockImplementation(
+      () => {
+        const userStr = localStorage.getItem('user');
+        return userStr ? JSON.parse(userStr) : null;
+      }
+    );
+    vi.mocked(authService.authService.isAuthenticated).mockImplementation(
+      () => !!localStorage.getItem('token')
+    );
 
     renderLogin();
 
@@ -116,13 +134,31 @@ describe('Login Component', () => {
 
   it('should navigate to home page on successful login', async () => {
     const user = userEvent.setup();
-    const mockLogin = vi.fn().mockResolvedValue({
-      message: 'Login successful',
-      user: { id: '1', email: 'test@example.com', createdAt: new Date() },
-      token: 'mock-token',
+    const mockUser = {
+      id: '1',
+      email: 'test@example.com',
+      createdAt: new Date().toISOString(),
+    };
+    const mockLogin = vi.fn().mockImplementation(async () => {
+      localStorage.setItem('token', 'mock-token');
+      localStorage.setItem('user', JSON.stringify(mockUser));
+      return {
+        message: 'Login successful',
+        user: mockUser,
+        token: 'mock-token',
+      };
     });
 
     vi.mocked(authService.authService.login).mockImplementation(mockLogin);
+    vi.mocked(authService.authService.getCurrentUser).mockImplementation(
+      () => {
+        const userStr = localStorage.getItem('user');
+        return userStr ? JSON.parse(userStr) : null;
+      }
+    );
+    vi.mocked(authService.authService.isAuthenticated).mockImplementation(
+      () => !!localStorage.getItem('token')
+    );
 
     renderLogin();
 
@@ -168,26 +204,36 @@ describe('Login Component', () => {
 
   it('should show loading state during login', async () => {
     const user = userEvent.setup();
+    const mockUser = {
+      id: '1',
+      email: 'test@example.com',
+      createdAt: new Date().toISOString(),
+    };
     const mockLogin = vi.fn(
       () =>
         new Promise(resolve =>
-          setTimeout(
-            () =>
-              resolve({
-                message: 'Login successful',
-                user: {
-                  id: '1',
-                  email: 'test@example.com',
-                  createdAt: new Date(),
-                },
-                token: 'mock-token',
-              }),
-            100
-          )
+          setTimeout(() => {
+            localStorage.setItem('token', 'mock-token');
+            localStorage.setItem('user', JSON.stringify(mockUser));
+            resolve({
+              message: 'Login successful',
+              user: mockUser,
+              token: 'mock-token',
+            });
+          }, 100)
         )
     );
 
     vi.mocked(authService.authService.login).mockImplementation(mockLogin);
+    vi.mocked(authService.authService.getCurrentUser).mockImplementation(
+      () => {
+        const userStr = localStorage.getItem('user');
+        return userStr ? JSON.parse(userStr) : null;
+      }
+    );
+    vi.mocked(authService.authService.isAuthenticated).mockImplementation(
+      () => !!localStorage.getItem('token')
+    );
 
     renderLogin();
 
