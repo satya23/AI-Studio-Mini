@@ -289,10 +289,12 @@ describe('GET /generations', () => {
     it('should handle multiple generations correctly', async () => {
       // Create 5 generations
       for (let i = 0; i < 5; i++) {
-        await request(app).post('/generations').send({
-          prompt: `Generation ${i + 1}`,
-          style: 'style',
-        });
+        await request(app)
+          .post('/generations')
+          .send({
+            prompt: `Generation ${i + 1}`,
+            style: 'style',
+          });
       }
 
       const response = await request(app).get('/generations');
