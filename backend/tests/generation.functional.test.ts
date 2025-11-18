@@ -117,7 +117,9 @@ describe('POST /generations', () => {
         });
 
       expect(response.status).toBe(201);
-      expect(response.body.imageUrl).toBe('https://example.com/custom-image.jpg');
+      expect(response.body.imageUrl).toBe(
+        'https://example.com/custom-image.jpg'
+      );
     });
 
     it('should create generation with completed status', async () => {
@@ -549,7 +551,10 @@ describe('GET /generations', () => {
         .set('Authorization', `Bearer ${token}`);
 
       expect(response.status).toBe(400);
-      expect(response.body).toHaveProperty('message', 'Invalid limit parameter');
+      expect(response.body).toHaveProperty(
+        'message',
+        'Invalid limit parameter'
+      );
     });
 
     it('should return 400 for negative limit', async () => {
@@ -560,7 +565,10 @@ describe('GET /generations', () => {
         .set('Authorization', `Bearer ${token}`);
 
       expect(response.status).toBe(400);
-      expect(response.body).toHaveProperty('message', 'Invalid limit parameter');
+      expect(response.body).toHaveProperty(
+        'message',
+        'Invalid limit parameter'
+      );
     });
 
     it('should return 400 for zero limit', async () => {
@@ -571,7 +579,10 @@ describe('GET /generations', () => {
         .set('Authorization', `Bearer ${token}`);
 
       expect(response.status).toBe(400);
-      expect(response.body).toHaveProperty('message', 'Invalid limit parameter');
+      expect(response.body).toHaveProperty(
+        'message',
+        'Invalid limit parameter'
+      );
     });
   });
 
