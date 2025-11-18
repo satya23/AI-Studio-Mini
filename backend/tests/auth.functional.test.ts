@@ -22,10 +22,7 @@ describe('POST /auth/signup', () => {
       );
       expect(response.body).toHaveProperty('user');
       expect(response.body.user).toHaveProperty('id');
-      expect(response.body.user).toHaveProperty(
-        'email',
-        'newuser@example.com'
-      );
+      expect(response.body.user).toHaveProperty('email', 'newuser@example.com');
       expect(response.body.user).toHaveProperty('createdAt');
       expect(response.body.user).not.toHaveProperty('password');
     });
@@ -140,4 +137,3 @@ describe('POST /auth/signup', () => {
     });
   });
 });
-
