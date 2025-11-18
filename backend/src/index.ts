@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import authRoutes from './routes/auth.js';
+import generationRoutes from './routes/generations.js';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -11,6 +12,7 @@ app.use(express.json());
 
 // Routes
 app.use('/auth', authRoutes);
+app.use('/generations', generationRoutes);
 
 // Health check endpoint
 app.get('/health', (_req, res) => {
