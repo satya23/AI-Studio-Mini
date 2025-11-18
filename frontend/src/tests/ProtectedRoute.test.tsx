@@ -73,11 +73,6 @@ describe('ProtectedRoute Component', () => {
     vi.mocked(authService.authService.isAuthenticated).mockReturnValue(false);
     vi.mocked(authService.authService.getToken).mockReturnValue(null);
 
-    // Mock a delay in getCurrentUser to simulate loading
-    vi.mocked(authService.authService.getCurrentUser).mockImplementation(
-      () => Promise.resolve(null)
-    );
-
     render(
       <BrowserRouter>
         <AuthProvider>
