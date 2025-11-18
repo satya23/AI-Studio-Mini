@@ -49,12 +49,24 @@ export default defineConfig({
       url: 'http://localhost:5050/health',
       reuseExistingServer: !process.env.CI,
       timeout: 120 * 1000,
+      stdout: 'pipe',
+      stderr: 'pipe',
+      env: {
+        PORT: '5050',
+        NODE_ENV: 'test',
+        JWT_SECRET: 'test-secret-key-for-playwright',
+      },
     },
     {
       command: 'cd frontend && npm run dev',
       url: 'http://localhost:3000',
       reuseExistingServer: !process.env.CI,
       timeout: 120 * 1000,
+      stdout: 'pipe',
+      stderr: 'pipe',
+      env: {
+        VITE_API_URL: 'http://localhost:5050',
+      },
     },
   ],
 });

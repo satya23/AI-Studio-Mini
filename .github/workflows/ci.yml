@@ -299,19 +299,47 @@ jobs:
         working-directory: ./backend
         run: npm run build
 
+      - name: Verify backend build
+        working-directory: ./backend
+        run: |
+          if [ ! -f dist/index.js ]; then
+            echo "Error: Backend build failed - dist/index.js not found"
+            exit 1
+          fi
+          echo "Backend build verified"
+
       - name: Start backend server
         working-directory: ./backend
         run: |
           npm start > backend.log 2>&1 &
-          echo $! > backend.pid
-          echo "Backend server starting..."
+          BACKEND_PID=$!
+          echo $BACKEND_PID > backend.pid
+          echo "Backend server starting (PID: $BACKEND_PID)..."
+          sleep 3
+          # Check if process is still running
+          if ! kill -0 $BACKEND_PID 2>/dev/null; then
+            echo "Backend process died immediately. Logs:"
+            cat backend.log
+            exit 1
+          fi
         env:
           NODE_ENV: test
           PORT: 5050
           JWT_SECRET: test-secret-key-for-ci
 
       - name: Wait for backend
-        run: npx wait-on http://localhost:5050/health --timeout 30000
+        run: |
+          echo "Waiting for backend to be ready..."
+          npx wait-on http://localhost:5050/health --timeout 30000 || {
+            echo "Backend failed to start. Checking logs:"
+            cat backend/backend.log 2>/dev/null || echo "No backend.log found"
+            echo "Checking if backend process is running:"
+            ps aux | grep -E "node|backend" || true
+            echo "Checking if port 5050 is in use:"
+            netstat -tuln 2>/dev/null | grep 5050 || lsof -i :5050 2>/dev/null || echo "Port 5050 not in use"
+            exit 1
+          }
+          echo "Backend is ready!"
 
       - name: Start frontend server
         working-directory: ./frontend
