@@ -51,9 +51,12 @@ export default function Signup() {
       navigate('/');
     } catch (err: unknown) {
       if (err && typeof err === 'object' && 'response' in err) {
-        const axiosError = err as { response?: { data?: { message?: string } } };
+        const axiosError = err as {
+          response?: { data?: { message?: string } };
+        };
         setError(
-          axiosError.response?.data?.message || 'Signup failed. Please try again.'
+          axiosError.response?.data?.message ||
+            'Signup failed. Please try again.'
         );
       } else {
         setError('Signup failed. Please try again.');
@@ -91,7 +94,10 @@ export default function Signup() {
           )}
           <div className="rounded-md shadow-sm space-y-4">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-gray-700"
+              >
                 Email address
               </label>
               <input
@@ -107,7 +113,10 @@ export default function Signup() {
               />
             </div>
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-gray-700"
+              >
                 Password
               </label>
               <input
@@ -122,11 +131,15 @@ export default function Signup() {
                 onChange={e => setPassword(e.target.value)}
               />
               <p className="mt-1 text-xs text-gray-500">
-                Must be at least 8 characters with uppercase, lowercase, and number
+                Must be at least 8 characters with uppercase, lowercase, and
+                number
               </p>
             </div>
             <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="confirmPassword"
+                className="block text-sm font-medium text-gray-700"
+              >
                 Confirm Password
               </label>
               <input
@@ -157,4 +170,3 @@ export default function Signup() {
     </div>
   );
 }
-

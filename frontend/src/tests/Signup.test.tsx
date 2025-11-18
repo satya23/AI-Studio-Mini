@@ -53,13 +53,17 @@ describe('Signup Component', () => {
     expect(screen.getByLabelText('Email address')).toBeInTheDocument();
     expect(screen.getByLabelText('Password')).toBeInTheDocument();
     expect(screen.getByLabelText('Confirm Password')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /create account/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /create account/i })
+    ).toBeInTheDocument();
   });
 
   it('should show link to login page', () => {
     renderSignup();
 
-    const loginLink = screen.getByRole('link', { name: /sign in to your existing account/i });
+    const loginLink = screen.getByRole('link', {
+      name: /sign in to your existing account/i,
+    });
     expect(loginLink).toBeInTheDocument();
     expect(loginLink).toHaveAttribute('href', '/login');
   });
@@ -94,7 +98,9 @@ describe('Signup Component', () => {
 
     const passwordInput = screen.getByLabelText('Password');
     const confirmPasswordInput = screen.getByLabelText('Confirm Password');
-    const submitButton = screen.getByRole('button', { name: /create account/i });
+    const submitButton = screen.getByRole('button', {
+      name: /create account/i,
+    });
 
     await user.type(passwordInput, 'Password123');
     await user.type(confirmPasswordInput, 'DifferentPassword');
@@ -111,7 +117,9 @@ describe('Signup Component', () => {
 
     const passwordInput = screen.getByLabelText('Password');
     const confirmPasswordInput = screen.getByLabelText('Confirm Password');
-    const submitButton = screen.getByRole('button', { name: /create account/i });
+    const submitButton = screen.getByRole('button', {
+      name: /create account/i,
+    });
 
     await user.type(passwordInput, 'Short1');
     await user.type(confirmPasswordInput, 'Short1');
@@ -130,7 +138,9 @@ describe('Signup Component', () => {
 
     const passwordInput = screen.getByLabelText('Password');
     const confirmPasswordInput = screen.getByLabelText('Confirm Password');
-    const submitButton = screen.getByRole('button', { name: /create account/i });
+    const submitButton = screen.getByRole('button', {
+      name: /create account/i,
+    });
 
     await user.type(passwordInput, 'PASSWORD123');
     await user.type(confirmPasswordInput, 'PASSWORD123');
@@ -149,7 +159,9 @@ describe('Signup Component', () => {
 
     const passwordInput = screen.getByLabelText('Password');
     const confirmPasswordInput = screen.getByLabelText('Confirm Password');
-    const submitButton = screen.getByRole('button', { name: /create account/i });
+    const submitButton = screen.getByRole('button', {
+      name: /create account/i,
+    });
 
     await user.type(passwordInput, 'password123');
     await user.type(confirmPasswordInput, 'password123');
@@ -168,7 +180,9 @@ describe('Signup Component', () => {
 
     const passwordInput = screen.getByLabelText('Password');
     const confirmPasswordInput = screen.getByLabelText('Confirm Password');
-    const submitButton = screen.getByRole('button', { name: /create account/i });
+    const submitButton = screen.getByRole('button', {
+      name: /create account/i,
+    });
 
     await user.type(passwordInput, 'Password');
     await user.type(confirmPasswordInput, 'Password');
@@ -201,7 +215,9 @@ describe('Signup Component', () => {
     const emailInput = screen.getByLabelText('Email address');
     const passwordInput = screen.getByLabelText('Password');
     const confirmPasswordInput = screen.getByLabelText('Confirm Password');
-    const submitButton = screen.getByRole('button', { name: /create account/i });
+    const submitButton = screen.getByRole('button', {
+      name: /create account/i,
+    });
 
     await user.type(emailInput, 'test@example.com');
     await user.type(passwordInput, 'Password123');
@@ -237,7 +253,9 @@ describe('Signup Component', () => {
     const emailInput = screen.getByLabelText('Email address');
     const passwordInput = screen.getByLabelText('Password');
     const confirmPasswordInput = screen.getByLabelText('Confirm Password');
-    const submitButton = screen.getByRole('button', { name: /create account/i });
+    const submitButton = screen.getByRole('button', {
+      name: /create account/i,
+    });
 
     await user.type(emailInput, 'test@example.com');
     await user.type(passwordInput, 'Password123');
@@ -266,7 +284,9 @@ describe('Signup Component', () => {
     const emailInput = screen.getByLabelText('Email address');
     const passwordInput = screen.getByLabelText('Password');
     const confirmPasswordInput = screen.getByLabelText('Confirm Password');
-    const submitButton = screen.getByRole('button', { name: /create account/i });
+    const submitButton = screen.getByRole('button', {
+      name: /create account/i,
+    });
 
     await user.type(emailInput, 'existing@example.com');
     await user.type(passwordInput, 'Password123');
@@ -309,7 +329,9 @@ describe('Signup Component', () => {
     const emailInput = screen.getByLabelText('Email address');
     const passwordInput = screen.getByLabelText('Password');
     const confirmPasswordInput = screen.getByLabelText('Confirm Password');
-    const submitButton = screen.getByRole('button', { name: /create account/i });
+    const submitButton = screen.getByRole('button', {
+      name: /create account/i,
+    });
 
     await user.type(emailInput, 'test@example.com');
     await user.type(passwordInput, 'Password123');
@@ -334,4 +356,3 @@ describe('Signup Component', () => {
     ).toBeInTheDocument();
   });
 });
-

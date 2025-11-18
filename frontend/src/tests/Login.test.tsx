@@ -51,13 +51,17 @@ describe('Login Component', () => {
 
     expect(screen.getByPlaceholderText('Email address')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('Password')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /sign in/i })
+    ).toBeInTheDocument();
   });
 
   it('should show link to signup page', () => {
     renderLogin();
 
-    const signupLink = screen.getByRole('link', { name: /create a new account/i });
+    const signupLink = screen.getByRole('link', {
+      name: /create a new account/i,
+    });
     expect(signupLink).toBeInTheDocument();
     expect(signupLink).toHaveAttribute('href', '/signup');
   });
@@ -171,7 +175,11 @@ describe('Login Component', () => {
             () =>
               resolve({
                 message: 'Login successful',
-                user: { id: '1', email: 'test@example.com', createdAt: new Date() },
+                user: {
+                  id: '1',
+                  email: 'test@example.com',
+                  createdAt: new Date(),
+                },
                 token: 'mock-token',
               }),
             100
@@ -209,4 +217,3 @@ describe('Login Component', () => {
     expect(passwordInput).toBeRequired();
   });
 });
-

@@ -20,9 +20,12 @@ export default function Login() {
       navigate('/');
     } catch (err: unknown) {
       if (err && typeof err === 'object' && 'response' in err) {
-        const axiosError = err as { response?: { data?: { message?: string } } };
+        const axiosError = err as {
+          response?: { data?: { message?: string } };
+        };
         setError(
-          axiosError.response?.data?.message || 'Login failed. Please try again.'
+          axiosError.response?.data?.message ||
+            'Login failed. Please try again.'
         );
       } else {
         setError('Login failed. Please try again.');
@@ -107,4 +110,3 @@ export default function Login() {
     </div>
   );
 }
-

@@ -105,8 +105,12 @@ describe('AuthContext', () => {
 
     vi.mocked(authService.authService.getCurrentUser).mockReturnValue(null);
     vi.mocked(authService.authService.isAuthenticated).mockReturnValue(false);
-    vi.mocked(authService.authService.signup).mockResolvedValue(mockSignupResponse);
-    vi.mocked(authService.authService.login).mockResolvedValue(mockLoginResponse);
+    vi.mocked(authService.authService.signup).mockResolvedValue(
+      mockSignupResponse
+    );
+    vi.mocked(authService.authService.login).mockResolvedValue(
+      mockLoginResponse
+    );
 
     const { result } = renderHook(() => useAuth(), { wrapper });
 
@@ -161,4 +165,3 @@ describe('AuthContext', () => {
     consoleSpy.mockRestore();
   });
 });
-

@@ -5,11 +5,6 @@ import api from '../services/api.js';
 
 // Mock axios
 vi.mock('axios');
-const mockedAxios = axios as unknown as {
-  create: ReturnType<typeof vi.fn>;
-  post: ReturnType<typeof vi.fn>;
-  get: ReturnType<typeof vi.fn>;
-};
 
 // Mock the api module
 vi.mock('../services/api.js', () => ({
@@ -157,7 +152,10 @@ describe('authService', () => {
   describe('logout', () => {
     it('should clear token and user from localStorage', () => {
       localStorage.setItem('token', 'mock-token');
-      localStorage.setItem('user', JSON.stringify({ id: '1', email: 'test@example.com' }));
+      localStorage.setItem(
+        'user',
+        JSON.stringify({ id: '1', email: 'test@example.com' })
+      );
 
       authService.logout();
 
@@ -221,4 +219,3 @@ describe('authService', () => {
     });
   });
 });
-

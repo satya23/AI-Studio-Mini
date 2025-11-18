@@ -1,7 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -27,7 +26,10 @@ api.interceptors.response.use(
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       // Only redirect if not already on login/signup page
-      if (!window.location.pathname.includes('/login') && !window.location.pathname.includes('/signup')) {
+      if (
+        !window.location.pathname.includes('/login') &&
+        !window.location.pathname.includes('/signup')
+      ) {
         window.location.href = '/login';
       }
     }

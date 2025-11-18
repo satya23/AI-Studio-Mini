@@ -124,14 +124,14 @@ jobs:
         working-directory: ./frontend
         run: npm install --frozen-lockfile || npm install
 
-      - name: Run tests
+      - name: Run unit tests
         working-directory: ./frontend
-        run: npm test -- --run || echo "No tests found or tests failed"
-        continue-on-error: true
+        run: npm test -- --run
+        continue-on-error: false
 
       - name: Generate coverage report
         working-directory: ./frontend
-        run: npm run test:coverage || echo "Coverage generation skipped"
+        run: npm run test:coverage
         continue-on-error: true
 
       - name: Upload coverage to artifacts
@@ -190,7 +190,7 @@ jobs:
   build:
     name: Build Projects
     runs-on: ubuntu-latest
-    needs: [eslint, format-check]
+    needs: [eslint, format-check, test-frontend, test-backend]
     
     steps:
       - name: Checkout code
@@ -241,5 +241,139 @@ jobs:
           name: backend-build
           path: backend/dist
           retention-days: 1
+          if-no-files-found: ignore
+
+  test-e2e:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    needs: [test-frontend, test-backend]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Cache node modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            frontend/node_modules
+            backend/node_modules
+            node_modules
+          key: ${{ runner.os }}-node-e2e-${{ hashFiles('package.json') }}-${{ hashFiles('frontend/package.json') }}-${{ hashFiles('backend/package.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-e2e-
+            ${{ runner.os }}-node-
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('package.json') }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-
+
+      - name: Install root dependencies
+        run: npm install --frozen-lockfile || npm install
+
+      - name: Install frontend dependencies
+        working-directory: ./frontend
+        run: npm install --frozen-lockfile || npm install
+
+      - name: Install backend dependencies
+        working-directory: ./backend
+        run: npm install --frozen-lockfile || npm install
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Build frontend
+        working-directory: ./frontend
+        run: npm run build
+
+      - name: Build backend
+        working-directory: ./backend
+        run: npm run build
+
+      - name: Start backend server
+        working-directory: ./backend
+        run: |
+          npm start > backend.log 2>&1 &
+          echo $! > backend.pid
+          echo "Backend server starting..."
+          sleep 3
+          # Wait for backend to be ready
+          for i in {1..30}; do
+            if curl -f http://localhost:5000/health > /dev/null 2>&1; then
+              echo "Backend is ready!"
+              break
+            fi
+            echo "Waiting for backend... ($i/30)"
+            sleep 1
+          done
+        env:
+          NODE_ENV: test
+          PORT: 5000
+          JWT_SECRET: test-secret-key-for-ci
+
+      - name: Start frontend server
+        working-directory: ./frontend
+        run: |
+          npm run preview > frontend.log 2>&1 &
+          echo $! > frontend.pid
+          echo "Frontend server starting..."
+          sleep 3
+          # Wait for frontend to be ready
+          for i in {1..30}; do
+            if curl -f http://localhost:3000 > /dev/null 2>&1; then
+              echo "Frontend is ready!"
+              break
+            fi
+            echo "Waiting for frontend... ($i/30)"
+            sleep 1
+          done
+        env:
+          VITE_API_URL: http://localhost:5000
+
+      - name: Run E2E tests
+        run: npm run test:e2e
+        env:
+          CI: true
+          API_URL: http://localhost:5000
+          FRONTEND_URL: http://localhost:3000
+
+      - name: Stop servers
+        if: always()
+        run: |
+          if [ -f backend/backend.pid ]; then
+            kill $(cat backend/backend.pid) || true
+          fi
+          if [ -f frontend/frontend.pid ]; then
+            kill $(cat frontend/frontend.pid) || true
+          fi
+          # Also kill any remaining node processes
+          pkill -f "node.*backend" || true
+          pkill -f "vite preview" || true
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-results
+          path: test-results/
+          retention-days: 7
           if-no-files-found: ignore
 

@@ -76,9 +76,9 @@ describe('ProtectedRoute Component', () => {
     // Mock a delay in getCurrentUser to simulate loading
     vi.mocked(authService.authService.getCurrentUser).mockImplementation(
       () =>
-        new Promise(resolve => {
+        new Promise<null>(resolve => {
           setTimeout(() => resolve(null), 100);
-        }) as any
+        })
     );
 
     render(
@@ -95,4 +95,3 @@ describe('ProtectedRoute Component', () => {
     // Note: This might not be visible immediately due to async nature
   });
 });
-
