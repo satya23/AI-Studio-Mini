@@ -1,6 +1,8 @@
+/// <reference types="jest" />
 import { AuthService } from '../src/services/auth.service.js';
 import { UserModel } from '../src/models/user.model.js';
 import db from '../src/db/database.js';
+import jwt from 'jsonwebtoken';
 
 describe('AuthService', () => {
   beforeEach(() => {
@@ -68,6 +70,103 @@ describe('AuthService', () => {
       });
 
       expect(user1.id).not.toBe(user2.id);
+    });
+  });
+
+  describe('login', () => {
+    it('should login successfully with correct credentials', async () => {
+      // Create a user first
+      const signupInput = {
+        email: 'login@example.com',
+        password: 'Password123',
+      };
+      await AuthService.signup(signupInput);
+
+      // Login with correct credentials
+      const loginInput = {
+        email: 'login@example.com',
+        password: 'Password123',
+      };
+      const result = await AuthService.login(loginInput);
+
+      expect(result).toHaveProperty('user');
+      expect(result).toHaveProperty('token');
+      expect(result.user).toHaveProperty('id');
+      expect(result.user).toHaveProperty('email', 'login@example.com');
+      expect(result.user).toHaveProperty('createdAt');
+      expect(result.user).not.toHaveProperty('password');
+      expect(typeof result.token).toBe('string');
+      expect(result.token.length).toBeGreaterThan(0);
+    });
+
+    it('should generate a valid JWT token', async () => {
+      // Create a user first
+      await AuthService.signup({
+        email: 'jwt@example.com',
+        password: 'Password123',
+      });
+
+      // Login
+      const result = await AuthService.login({
+        email: 'jwt@example.com',
+        password: 'Password123',
+      });
+
+      // Verify token is valid
+      const JWT_SECRET =
+        process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+      const decoded = jwt.verify(result.token, JWT_SECRET) as {
+        id: string;
+        email: string;
+      };
+
+      expect(decoded).toHaveProperty('id');
+      expect(decoded).toHaveProperty('email', 'jwt@example.com');
+    });
+
+    it('should throw error for non-existent user', async () => {
+      const loginInput = {
+        email: 'nonexistent@example.com',
+        password: 'Password123',
+      };
+
+      await expect(AuthService.login(loginInput)).rejects.toThrow(
+        'Invalid email or password'
+      );
+    });
+
+    it('should throw error for incorrect password', async () => {
+      // Create a user first
+      await AuthService.signup({
+        email: 'wrongpass@example.com',
+        password: 'Password123',
+      });
+
+      // Try to login with wrong password
+      const loginInput = {
+        email: 'wrongpass@example.com',
+        password: 'WrongPassword123',
+      };
+
+      await expect(AuthService.login(loginInput)).rejects.toThrow(
+        'Invalid email or password'
+      );
+    });
+
+    it('should return user without password', async () => {
+      // Create a user first
+      await AuthService.signup({
+        email: 'nopass@example.com',
+        password: 'Password123',
+      });
+
+      // Login
+      const result = await AuthService.login({
+        email: 'nopass@example.com',
+        password: 'Password123',
+      });
+
+      expect(result.user).not.toHaveProperty('password');
     });
   });
 });
