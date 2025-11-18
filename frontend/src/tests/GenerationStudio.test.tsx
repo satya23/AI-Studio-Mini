@@ -590,16 +590,17 @@ describe('GenerationStudio Component', () => {
     vi.mocked(generationService.getGenerations).mockResolvedValue([]);
 
     // First call fails, then we abort
-    const delayedReject = new Promise((_, reject) => {
+    const delayedReject = new Promise<never>((_, reject) => {
       // Promise will be rejected when aborted
       setTimeout(() => reject(new Error('Aborted')), 1000);
     });
+    const handledReject = delayedReject.catch(() => undefined);
 
     vi.mocked(generationService.create)
       .mockRejectedValueOnce({
         response: { status: 503 },
       })
-      .mockReturnValueOnce(delayedReject as never);
+      .mockReturnValueOnce(handledReject as never);
 
     renderGenerationStudio();
 
