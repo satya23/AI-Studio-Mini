@@ -28,6 +28,20 @@ dbInstance.exec(`
   )
 `);
 
+// Create generations table
+dbInstance.exec(`
+  CREATE TABLE IF NOT EXISTS generations (
+    id TEXT PRIMARY KEY,
+    userId TEXT NOT NULL,
+    prompt TEXT NOT NULL,
+    style TEXT NOT NULL,
+    imageUrl TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pending',
+    createdAt TEXT NOT NULL DEFAULT (datetime('now')),
+    FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
+  )
+`);
+
 // Export as default
 // Using InstanceType to create a type that can be named in declaration files
 export type DatabaseInstance = InstanceType<typeof Database>;
