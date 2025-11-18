@@ -432,31 +432,16 @@ describe('GenerationStudio Component', () => {
 
     const generateButton = screen.getByRole('button', { name: /generate/i });
 
-    // Button should be disabled when prompt is empty
-    expect(generateButton).toBeDisabled();
+    // Button remains enabled but clicking without prompt should show validation error
+    expect(generateButton).toBeEnabled();
 
-    // Type something to enable the button, then delete all but leave whitespace
-    // The button disabled state checks !prompt.trim(), so whitespace keeps it disabled
-    // But we can test by typing a character, then deleting it, which should keep button enabled
-    // Actually, let's test by typing and then using backspace to clear
-    const promptInput = screen.getByLabelText(/Prompt/i);
     await act(async () => {
-      await user.type(promptInput, 'test');
-      // Now delete all characters
-      await user.clear(promptInput);
+      await user.click(generateButton);
     });
 
-    // Button should be disabled again after clearing
-    expect(generateButton).toBeDisabled();
-
-    // Since the button is disabled, we can't click it normally
-    // But we can test that the validation works by checking the component logic
-    // Actually, let's test by typing a single character then deleting it with backspace
-    // which might leave the input in a state where we can trigger the handler
-    // Or we can directly test the validation by checking the button state
-    // For now, let's just verify the button is correctly disabled
-    // and skip testing the error message since the button prevents the handler from running
-    expect(generateButton).toBeDisabled();
+    await waitFor(() => {
+      expect(screen.getByText(/Please enter a prompt/i)).toBeInTheDocument();
+    });
   });
 
   it('should handle maximum retry attempts (3 retries then failure)', async () => {
