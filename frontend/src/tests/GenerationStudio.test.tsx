@@ -612,14 +612,9 @@ describe('GenerationStudio Component', () => {
     });
 
     // Wait for retry message - the format is "Model overloaded. Retrying... (1/3)"
-    // Use a more flexible matcher
-    await waitFor(
-      () => {
-        const retryMessage = screen.queryByText(/Model overloaded.*Retrying/i);
-        expect(retryMessage).toBeInTheDocument();
-      },
-      { timeout: 3000 }
-    );
+    await screen.findByText(/Model overloaded.*Retrying/i, undefined, {
+      timeout: 3000,
+    });
 
     // Abort during retry
     const abortButton = screen.getByRole('button', { name: /abort/i });
