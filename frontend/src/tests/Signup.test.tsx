@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, waitFor, act } from '@testing-library/react';
+import { render, screen, waitFor, act, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { BrowserRouter } from 'react-router-dom';
 import Signup from '../components/Signup.js';
@@ -102,21 +102,19 @@ describe('Signup Component', () => {
 
     const passwordInput = screen.getByLabelText('Password');
     const confirmPasswordInput = screen.getByLabelText('Confirm Password');
-    const submitButton = screen.getByRole('button', {
+    const form = screen.getByRole('button', {
       name: /create account/i,
-    });
+    }).closest('form') as HTMLFormElement;
 
+    await user.type(passwordInput, 'Password123');
+    await user.type(confirmPasswordInput, 'DifferentPassword');
+    
     await act(async () => {
-      await user.type(passwordInput, 'Password123');
-      await user.type(confirmPasswordInput, 'DifferentPassword');
-      await user.click(submitButton);
+      fireEvent.submit(form);
     });
 
-    await waitFor(() => {
-      expect(
-        screen.getByText((content) => content.includes('Passwords do not match'))
-      ).toBeInTheDocument();
-    });
+    const errorAlert = await screen.findByRole('alert');
+    expect(errorAlert).toHaveTextContent('Passwords do not match');
   });
 
   it('should show error for password too short', async () => {
@@ -125,23 +123,19 @@ describe('Signup Component', () => {
 
     const passwordInput = screen.getByLabelText('Password');
     const confirmPasswordInput = screen.getByLabelText('Confirm Password');
-    const submitButton = screen.getByRole('button', {
+    const form = screen.getByRole('button', {
       name: /create account/i,
-    });
+    }).closest('form') as HTMLFormElement;
 
+    await user.type(passwordInput, 'Short1');
+    await user.type(confirmPasswordInput, 'Short1');
+    
     await act(async () => {
-      await user.type(passwordInput, 'Short1');
-      await user.type(confirmPasswordInput, 'Short1');
-      await user.click(submitButton);
+      fireEvent.submit(form);
     });
 
-    await waitFor(() => {
-      expect(
-        screen.getByText((content) =>
-          content.includes('Password must be at least 8 characters long')
-        )
-      ).toBeInTheDocument();
-    });
+    const errorAlert = await screen.findByRole('alert');
+    expect(errorAlert).toHaveTextContent('Password must be at least 8 characters long');
   });
 
   it('should show error for password missing lowercase', async () => {
@@ -150,25 +144,19 @@ describe('Signup Component', () => {
 
     const passwordInput = screen.getByLabelText('Password');
     const confirmPasswordInput = screen.getByLabelText('Confirm Password');
-    const submitButton = screen.getByRole('button', {
+    const form = screen.getByRole('button', {
       name: /create account/i,
-    });
+    }).closest('form') as HTMLFormElement;
 
+    await user.type(passwordInput, 'PASSWORD123');
+    await user.type(confirmPasswordInput, 'PASSWORD123');
+    
     await act(async () => {
-      await user.type(passwordInput, 'PASSWORD123');
-      await user.type(confirmPasswordInput, 'PASSWORD123');
-      await user.click(submitButton);
+      fireEvent.submit(form);
     });
 
-    await waitFor(() => {
-      expect(
-        screen.getByText((content) =>
-          content.includes(
-            'Password must contain at least one lowercase letter'
-          )
-        )
-      ).toBeInTheDocument();
-    });
+    const errorAlert = await screen.findByRole('alert');
+    expect(errorAlert).toHaveTextContent('Password must contain at least one lowercase letter');
   });
 
   it('should show error for password missing uppercase', async () => {
@@ -177,25 +165,19 @@ describe('Signup Component', () => {
 
     const passwordInput = screen.getByLabelText('Password');
     const confirmPasswordInput = screen.getByLabelText('Confirm Password');
-    const submitButton = screen.getByRole('button', {
+    const form = screen.getByRole('button', {
       name: /create account/i,
-    });
+    }).closest('form') as HTMLFormElement;
 
+    await user.type(passwordInput, 'password123');
+    await user.type(confirmPasswordInput, 'password123');
+    
     await act(async () => {
-      await user.type(passwordInput, 'password123');
-      await user.type(confirmPasswordInput, 'password123');
-      await user.click(submitButton);
+      fireEvent.submit(form);
     });
 
-    await waitFor(() => {
-      expect(
-        screen.getByText((content) =>
-          content.includes(
-            'Password must contain at least one uppercase letter'
-          )
-        )
-      ).toBeInTheDocument();
-    });
+    const errorAlert = await screen.findByRole('alert');
+    expect(errorAlert).toHaveTextContent('Password must contain at least one uppercase letter');
   });
 
   it('should show error for password missing number', async () => {
@@ -204,23 +186,19 @@ describe('Signup Component', () => {
 
     const passwordInput = screen.getByLabelText('Password');
     const confirmPasswordInput = screen.getByLabelText('Confirm Password');
-    const submitButton = screen.getByRole('button', {
+    const form = screen.getByRole('button', {
       name: /create account/i,
-    });
+    }).closest('form') as HTMLFormElement;
 
+    await user.type(passwordInput, 'Password');
+    await user.type(confirmPasswordInput, 'Password');
+    
     await act(async () => {
-      await user.type(passwordInput, 'Password');
-      await user.type(confirmPasswordInput, 'Password');
-      await user.click(submitButton);
+      fireEvent.submit(form);
     });
 
-    await waitFor(() => {
-      expect(
-        screen.getByText((content) =>
-          content.includes('Password must contain at least one number')
-        )
-      ).toBeInTheDocument();
-    });
+    const errorAlert = await screen.findByRole('alert');
+    expect(errorAlert).toHaveTextContent('Password must contain at least one number');
   });
 
   it('should call signup and login on successful form submission', async () => {
