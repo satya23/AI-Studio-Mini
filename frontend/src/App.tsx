@@ -3,6 +3,7 @@ import { useAuth } from './contexts/AuthContext.js';
 import Login from './components/Login.js';
 import Signup from './components/Signup.js';
 import ProtectedRoute from './components/ProtectedRoute.js';
+import GenerationStudio from './components/GenerationStudio.js';
 
 function Home() {
   const { user, logout } = useAuth();
@@ -23,16 +24,7 @@ function Home() {
           </div>
         </div>
       </header>
-      <main className="max-w-7xl mx-auto px-4 py-8">
-        <div className="bg-white shadow rounded-lg p-6">
-          <h2 className="text-2xl font-semibold text-gray-900 mb-4">
-            Welcome to AI Studio Mini
-          </h2>
-          <p className="text-gray-600">
-            Image generation studio coming soon...
-          </p>
-        </div>
-      </main>
+      <GenerationStudio />
     </div>
   );
 }

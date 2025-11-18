@@ -398,3 +398,624 @@ test.describe('Authentication E2E Tests', () => {
   });
 });
 
+test.describe('Image Generation E2E Tests', () => {
+  let authToken: string;
+  let userEmail: string;
+
+  test.beforeEach(async ({ page, request }) => {
+    // Create a user and get auth token for each test
+    userEmail = generateEmail();
+    const password = 'Password123';
+
+    // Signup
+    const signupResponse = await request.post(`${API_BASE_URL}/auth/signup`, {
+      data: { email: userEmail, password },
+    });
+    expect(signupResponse.ok()).toBeTruthy();
+
+    // Login to get token
+    const loginResponse = await request.post(`${API_BASE_URL}/auth/login`, {
+      data: { email: userEmail, password },
+    });
+    const loginBody = await loginResponse.json();
+    authToken = loginBody.token;
+
+    // Navigate to home page and clear localStorage
+    await page.goto(FRONTEND_URL);
+    await page.evaluate(
+      ({ token, user }) => {
+        localStorage.setItem('token', token);
+        localStorage.setItem('user', JSON.stringify(user));
+      },
+      { token: authToken, user: loginBody.user }
+    );
+  });
+
+  test.describe('Generation Form', () => {
+    test('should display generation studio form', async ({ page }) => {
+      await page.goto(`${FRONTEND_URL}/`);
+
+      await expect(page.locator('text=Image Generation Studio')).toBeVisible();
+      await expect(page.locator('label:has-text("Upload Image")')).toBeVisible();
+      await expect(page.locator('label:has-text("Prompt")')).toBeVisible();
+      await expect(page.locator('label:has-text("Style")')).toBeVisible();
+      await expect(page.locator('button:has-text("Generate")')).toBeVisible();
+    });
+
+    test('should update prompt when typing', async ({ page }) => {
+      await page.goto(`${FRONTEND_URL}/`);
+
+      const promptTextarea = page.locator('textarea[id="prompt"]');
+      await promptTextarea.fill('A beautiful sunset over mountains');
+
+      await expect(promptTextarea).toHaveValue('A beautiful sunset over mountains');
+    });
+
+    test('should change style selection', async ({ page }) => {
+      await page.goto(`${FRONTEND_URL}/`);
+
+      const styleSelect = page.locator('select[id="style"]');
+      await styleSelect.selectOption('Anime');
+
+      await expect(styleSelect).toHaveValue('Anime');
+    });
+
+    test('should show error when generating without prompt', async ({ page }) => {
+      await page.goto(`${FRONTEND_URL}/`);
+
+      const generateButton = page.locator('button:has-text("Generate")');
+      await generateButton.click();
+
+      await expect(
+        page.locator('text=/Please enter a prompt/i')
+      ).toBeVisible({ timeout: 3000 });
+    });
+  });
+
+  test.describe('Image Upload', () => {
+    test('should show image preview when image is uploaded', async ({ page }) => {
+      await page.goto(`${FRONTEND_URL}/`);
+
+      // Create a test image file (1x1 PNG)
+      const imageData = Buffer.from(
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+        'base64'
+      );
+
+      const fileInput = page.locator('input[type="file"]');
+      await fileInput.setInputFiles({
+        name: 'test.png',
+        mimeType: 'image/png',
+        buffer: imageData,
+      });
+
+      // Wait for preview to appear
+      await expect(page.locator('img[alt="Preview"]')).toBeVisible({
+        timeout: 3000,
+      });
+    });
+
+    test('should show error for file exceeding 10MB', async ({ page }) => {
+      await page.goto(`${FRONTEND_URL}/`);
+
+      // Create a large file (11MB)
+      const largeBuffer = Buffer.alloc(11 * 1024 * 1024, 'x');
+
+      const fileInput = page.locator('input[type="file"]');
+      await fileInput.setInputFiles({
+        name: 'large.jpg',
+        mimeType: 'image/jpeg',
+        buffer: largeBuffer,
+      });
+
+      await expect(
+        page.locator('text=/Image size must be less than 10MB/i')
+      ).toBeVisible({ timeout: 3000 });
+    });
+
+    test('should show error for invalid file type', async ({ page }) => {
+      await page.goto(`${FRONTEND_URL}/`);
+
+      const fileInput = page.locator('input[type="file"]');
+      await fileInput.setInputFiles({
+        name: 'test.gif',
+        mimeType: 'image/gif',
+        buffer: Buffer.from('test'),
+      });
+
+      await expect(
+        page.locator('text=/Image must be JPEG or PNG format/i')
+      ).toBeVisible({ timeout: 3000 });
+    });
+
+    test('should clear image when clear button is clicked', async ({ page }) => {
+      await page.goto(`${FRONTEND_URL}/`);
+
+      const imageData = Buffer.from(
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+        'base64'
+      );
+
+      const fileInput = page.locator('input[type="file"]');
+      await fileInput.setInputFiles({
+        name: 'test.png',
+        mimeType: 'image/png',
+        buffer: imageData,
+      });
+
+      await expect(page.locator('img[alt="Preview"]')).toBeVisible();
+
+      const clearButton = page.locator('text=Clear');
+      await clearButton.click();
+
+      await expect(page.locator('img[alt="Preview"]')).not.toBeVisible();
+    });
+  });
+
+  test.describe('Generation Flow', () => {
+    test('should successfully generate an image', async ({ page, request }) => {
+      await page.goto(`${FRONTEND_URL}/`);
+
+      // Fill in the form
+      await page.fill('textarea[id="prompt"]', 'A beautiful sunset');
+      await page.selectOption('select[id="style"]', 'Realistic');
+
+      // Click generate
+      const generateButton = page.locator('button:has-text("Generate")');
+      await generateButton.click();
+
+      // Wait for generation to complete (may take 1-2 seconds)
+      // The spinner should appear first
+      await expect(page.locator('text=/Generating.../i')).toBeVisible({
+        timeout: 1000,
+      });
+
+      // Wait for generation to complete (up to 5 seconds)
+      await expect(page.locator('text=/Generating.../i')).not.toBeVisible({
+        timeout: 5000,
+      });
+
+      // Verify past generations section is updated
+      await expect(
+        page.locator('text=Recent Generations')
+      ).toBeVisible();
+    });
+
+    test('should show spinner during generation', async ({ page }) => {
+      await page.goto(`${FRONTEND_URL}/`);
+
+      await page.fill('textarea[id="prompt"]', 'A beautiful sunset');
+      await page.selectOption('select[id="style"]', 'Realistic');
+
+      const generateButton = page.locator('button:has-text("Generate")');
+      await generateButton.click();
+
+      // Spinner should appear
+      await expect(page.locator('text=/Generating.../i')).toBeVisible({
+        timeout: 1000,
+      });
+    });
+
+    test('should display abort button during generation', async ({ page }) => {
+      await page.goto(`${FRONTEND_URL}/`);
+
+      await page.fill('textarea[id="prompt"]', 'A beautiful sunset');
+      await page.selectOption('select[id="style"]', 'Realistic');
+
+      const generateButton = page.locator('button:has-text("Generate")');
+      await generateButton.click();
+
+      // Abort button should appear
+      await expect(page.locator('button:has-text("Abort")')).toBeVisible({
+        timeout: 1000,
+      });
+    });
+
+    test('should abort generation when abort button is clicked', async ({
+      page,
+    }) => {
+      await page.goto(`${FRONTEND_URL}/`);
+
+      await page.fill('textarea[id="prompt"]', 'A beautiful sunset');
+      await page.selectOption('select[id="style"]', 'Realistic');
+
+      const generateButton = page.locator('button:has-text("Generate")');
+      await generateButton.click();
+
+      // Wait for abort button
+      const abortButton = await page.waitForSelector('button:has-text("Abort")', {
+        timeout: 1000,
+      });
+
+      // Click abort
+      await abortButton.click();
+
+      // Should show abort message
+      await expect(
+        page.locator('text=/Generation aborted/i')
+      ).toBeVisible({ timeout: 3000 });
+
+      // Generate button should be enabled again
+      await expect(generateButton).toBeEnabled({ timeout: 2000 });
+    });
+
+    test('should disable form fields during generation', async ({ page }) => {
+      await page.goto(`${FRONTEND_URL}/`);
+
+      const promptInput = page.locator('textarea[id="prompt"]');
+      const styleSelect = page.locator('select[id="style"]');
+      const generateButton = page.locator('button:has-text("Generate")');
+
+      await promptInput.fill('A beautiful sunset');
+      await styleSelect.selectOption('Realistic');
+      await generateButton.click();
+
+      // Form fields should be disabled
+      await expect(promptInput).toBeDisabled({ timeout: 1000 });
+      await expect(styleSelect).toBeDisabled({ timeout: 1000 });
+    });
+
+    test('should show character count for prompt', async ({ page }) => {
+      await page.goto(`${FRONTEND_URL}/`);
+
+      const promptInput = page.locator('textarea[id="prompt"]');
+      await promptInput.fill('Test prompt text');
+
+      // Should show character count
+      await expect(
+        page.locator('text=/\\d+\\/500 characters/i')
+      ).toBeVisible();
+    });
+
+    test('should validate prompt character limit', async ({ page }) => {
+      await page.goto(`${FRONTEND_URL}/`);
+
+      const promptInput = page.locator('textarea[id="prompt"]');
+      // Fill with 501 characters
+      const longPrompt = 'A'.repeat(501);
+      await promptInput.fill(longPrompt);
+
+      // Character count should show 501/500
+      await expect(page.locator('text=/501\\/500 characters/i')).toBeVisible();
+    });
+  });
+
+  test.describe('Past Generations', () => {
+    test('should display past generations', async ({ page, request }) => {
+      // Create some generations via API
+      const token = authToken;
+      for (let i = 0; i < 3; i++) {
+        await request.post(`${API_BASE_URL}/generations`, {
+          headers: { Authorization: `Bearer ${token}` },
+          data: {
+            prompt: `Test prompt ${i}`,
+            style: 'Realistic',
+          },
+        });
+      }
+
+      await page.goto(`${FRONTEND_URL}/`);
+
+      // Wait for past generations to load
+      await expect(page.locator('text=Recent Generations')).toBeVisible({
+        timeout: 3000,
+      });
+
+      // Should see at least one generation
+      const generationCards = page.locator(
+        '[data-testid="past-generation-card"]'
+      );
+      await expect(generationCards.first()).toBeVisible();
+    });
+
+    test('should restore generation when clicking on past generation', async ({
+      page,
+      request,
+    }) => {
+      const token = authToken;
+      const testPrompt = 'Sunset over mountains';
+      const testStyle = 'Anime';
+
+      // Create a generation
+      await request.post(`${API_BASE_URL}/generations`, {
+        headers: { Authorization: `Bearer ${token}` },
+        data: {
+          prompt: testPrompt,
+          style: testStyle,
+        },
+      });
+
+      await page.goto(`${FRONTEND_URL}/`);
+
+      // Wait for generation to appear
+      await expect(
+        page.locator(
+          `[data-testid="past-generation-card"] >> text=${testPrompt}`
+        )
+      ).toBeVisible({
+        timeout: 3000,
+      });
+
+      // Click on the generation card
+      await page
+        .locator('[data-testid="past-generation-card"]')
+        .filter({ hasText: testPrompt })
+        .first()
+        .click();
+
+      // Verify form is populated
+      await expect(page.locator('textarea[id="prompt"]')).toHaveValue(
+        testPrompt
+      );
+      await expect(page.locator('select[id="style"]')).toHaveValue(testStyle);
+    });
+
+    test('should show message when no generations exist', async ({ page }) => {
+      await page.goto(`${FRONTEND_URL}/`);
+
+      await expect(
+        page.locator('text=/No generations yet/i')
+      ).toBeVisible({ timeout: 3000 });
+    });
+
+    test('should limit past generations display to 5', async ({
+      page,
+      request,
+    }) => {
+      const token = authToken;
+
+      // Create 7 generations via API
+      for (let i = 0; i < 7; i++) {
+        await request.post(`${API_BASE_URL}/generations`, {
+          headers: { Authorization: `Bearer ${token}` },
+          data: {
+            prompt: `Test prompt ${i}`,
+            style: 'Realistic',
+          },
+        });
+      }
+
+      await page.goto(`${FRONTEND_URL}/`);
+
+      // Wait for past generations to load
+      await expect(page.locator('text=Recent Generations')).toBeVisible({
+        timeout: 3000,
+      });
+
+      // Should only show 5 generations (limit)
+      const generationCards = page.locator('[data-testid="past-generation-card"]');
+      const count = await generationCards.count();
+      expect(count).toBeLessThanOrEqual(5);
+    });
+
+    test('should update past generations after new generation', async ({
+      page,
+      request,
+    }) => {
+      const token = authToken;
+
+      // Create initial generation
+      await request.post(`${API_BASE_URL}/generations`, {
+        headers: { Authorization: `Bearer ${token}` },
+        data: {
+          prompt: 'Initial prompt',
+          style: 'Realistic',
+        },
+      });
+
+      await page.goto(`${FRONTEND_URL}/`);
+
+      // Wait for initial generation
+      await expect(
+        page.locator(
+          '[data-testid="past-generation-card"] >> text=Initial prompt'
+        )
+      ).toBeVisible({
+        timeout: 3000,
+      });
+
+      // Create new generation via form
+      await page.fill('textarea[id="prompt"]', 'New generation');
+      await page.selectOption('select[id="style"]', 'Anime');
+      await page.click('button:has-text("Generate")');
+
+      // Wait for generation to complete
+      await expect(
+        page.locator('text=/Generating.../i')
+      ).not.toBeVisible({ timeout: 5000 });
+
+      // New generation should appear in past generations list
+      await expect(
+        page.locator(
+          '[data-testid="past-generation-card"] >> text=New generation'
+        )
+      ).toBeVisible({
+        timeout: 5000,
+      });
+    });
+  });
+
+  test.describe('Error Handling', () => {
+    test('should handle network errors gracefully', async ({ page }) => {
+      // Intercept and fail the request
+      await page.route('**/generations', route => {
+        route.abort('failed');
+      });
+
+      await page.goto(`${FRONTEND_URL}/`);
+
+      await page.fill('textarea[id="prompt"]', 'A beautiful sunset');
+      await page.selectOption('select[id="style"]', 'Realistic');
+
+      const generateButton = page.locator('button:has-text("Generate")');
+      await generateButton.click();
+
+      // Should show error message
+      await expect(
+        page.locator('text=/Failed to generate/i')
+      ).toBeVisible({ timeout: 5000 });
+    });
+
+    test('should handle model overloaded error with retry message', async ({
+      page,
+      request,
+    }) => {
+      const token = authToken;
+
+      // Intercept POST /generations and return 503
+      let requestCount = 0;
+      await page.route('**/generations', async route => {
+        if (route.request().method() === 'POST') {
+          requestCount++;
+          if (requestCount <= 2) {
+            // First 2 requests return 503
+            await route.fulfill({
+              status: 503,
+              body: JSON.stringify({ message: 'Model overloaded' }),
+            });
+          } else {
+            // Subsequent requests proceed normally
+            await route.continue();
+          }
+        } else {
+          await route.continue();
+        }
+      });
+
+      await page.goto(`${FRONTEND_URL}/`);
+
+      await page.fill('textarea[id="prompt"]', 'A beautiful sunset');
+      await page.selectOption('select[id="style"]', 'Realistic');
+
+      const generateButton = page.locator('button:has-text("Generate")');
+      await generateButton.click();
+
+      // Should show retry message
+      await expect(
+        page.locator('text=/Model overloaded. Retrying.../i')
+      ).toBeVisible({ timeout: 3000 });
+    });
+  });
+
+  test.describe('API Endpoints', () => {
+    test('POST /generations should create generation', async ({ request }) => {
+      const token = authToken;
+
+      const response = await request.post(`${API_BASE_URL}/generations`, {
+        headers: { Authorization: `Bearer ${token}` },
+        data: {
+          prompt: 'A beautiful sunset',
+          style: 'Realistic',
+        },
+      });
+
+      expect(response.ok()).toBeTruthy();
+      const body = await response.json();
+      expect(body).toHaveProperty('id');
+      expect(body).toHaveProperty('imageUrl');
+      expect(body).toHaveProperty('prompt', 'A beautiful sunset');
+      expect(body).toHaveProperty('style', 'Realistic');
+      expect(body).toHaveProperty('status');
+      expect(body).toHaveProperty('createdAt');
+    });
+
+    test('POST /generations should require authentication', async ({
+      request,
+    }) => {
+      const response = await request.post(`${API_BASE_URL}/generations`, {
+        data: {
+          prompt: 'A beautiful sunset',
+          style: 'Realistic',
+        },
+      });
+
+      expect(response.status()).toBe(401);
+    });
+
+    test('POST /generations should validate input', async ({ request }) => {
+      const token = authToken;
+
+      // Missing prompt
+      const response1 = await request.post(`${API_BASE_URL}/generations`, {
+        headers: { Authorization: `Bearer ${token}` },
+        data: { style: 'Realistic' },
+      });
+      expect(response1.status()).toBe(400);
+
+      // Missing style
+      const response2 = await request.post(`${API_BASE_URL}/generations`, {
+        headers: { Authorization: `Bearer ${token}` },
+        data: { prompt: 'A beautiful sunset' },
+      });
+      expect(response2.status()).toBe(400);
+    });
+
+    test('GET /generations should return user generations', async ({
+      request,
+    }) => {
+      const token = authToken;
+
+      // Create some generations
+      for (let i = 0; i < 3; i++) {
+        await request.post(`${API_BASE_URL}/generations`, {
+          headers: { Authorization: `Bearer ${token}` },
+          data: {
+            prompt: `Test ${i}`,
+            style: 'Realistic',
+          },
+        });
+      }
+
+      const response = await request.get(
+        `${API_BASE_URL}/generations?limit=5`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      expect(response.ok()).toBeTruthy();
+      const body = await response.json();
+      expect(body).toHaveProperty('generations');
+      expect(body).toHaveProperty('count');
+      expect(Array.isArray(body.generations)).toBeTruthy();
+      expect(body.generations.length).toBeGreaterThan(0);
+    });
+
+    test('GET /generations should respect limit parameter', async ({
+      request,
+    }) => {
+      const token = authToken;
+
+      // Create 5 generations
+      for (let i = 0; i < 5; i++) {
+        await request.post(`${API_BASE_URL}/generations`, {
+          headers: { Authorization: `Bearer ${token}` },
+          data: {
+            prompt: `Test ${i}`,
+            style: 'Realistic',
+          },
+        });
+      }
+
+      const response = await request.get(
+        `${API_BASE_URL}/generations?limit=3`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      expect(response.ok()).toBeTruthy();
+      const body = await response.json();
+      expect(body.generations.length).toBeLessThanOrEqual(3);
+    });
+
+    test('GET /generations should require authentication', async ({
+      request,
+    }) => {
+      const response = await request.get(`${API_BASE_URL}/generations`);
+
+      expect(response.status()).toBe(401);
+    });
+  });
+});
+
