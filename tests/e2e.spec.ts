@@ -613,6 +613,75 @@ test.describe('Image Generation E2E Tests', () => {
         timeout: 1000,
       });
     });
+
+    test('should abort generation when abort button is clicked', async ({
+      page,
+    }) => {
+      await page.goto(`${FRONTEND_URL}/`);
+
+      await page.fill('textarea[id="prompt"]', 'A beautiful sunset');
+      await page.selectOption('select[id="style"]', 'Realistic');
+
+      const generateButton = page.locator('button:has-text("Generate")');
+      await generateButton.click();
+
+      // Wait for abort button
+      const abortButton = await page.waitForSelector('button:has-text("Abort")', {
+        timeout: 1000,
+      });
+
+      // Click abort
+      await abortButton.click();
+
+      // Should show abort message
+      await expect(
+        page.locator('text=/Generation aborted/i')
+      ).toBeVisible({ timeout: 3000 });
+
+      // Generate button should be enabled again
+      await expect(generateButton).toBeEnabled({ timeout: 2000 });
+    });
+
+    test('should disable form fields during generation', async ({ page }) => {
+      await page.goto(`${FRONTEND_URL}/`);
+
+      const promptInput = page.locator('textarea[id="prompt"]');
+      const styleSelect = page.locator('select[id="style"]');
+      const generateButton = page.locator('button:has-text("Generate")');
+
+      await promptInput.fill('A beautiful sunset');
+      await styleSelect.selectOption('Realistic');
+      await generateButton.click();
+
+      // Form fields should be disabled
+      await expect(promptInput).toBeDisabled({ timeout: 1000 });
+      await expect(styleSelect).toBeDisabled({ timeout: 1000 });
+      await expect(generateButton).toBeDisabled({ timeout: 1000 });
+    });
+
+    test('should show character count for prompt', async ({ page }) => {
+      await page.goto(`${FRONTEND_URL}/`);
+
+      const promptInput = page.locator('textarea[id="prompt"]');
+      await promptInput.fill('Test prompt text');
+
+      // Should show character count
+      await expect(
+        page.locator('text=/\\d+\\/500 characters/i')
+      ).toBeVisible();
+    });
+
+    test('should validate prompt character limit', async ({ page }) => {
+      await page.goto(`${FRONTEND_URL}/`);
+
+      const promptInput = page.locator('textarea[id="prompt"]');
+      // Fill with 501 characters
+      const longPrompt = 'A'.repeat(501);
+      await promptInput.fill(longPrompt);
+
+      // Character count should show 501/500
+      await expect(page.locator('text=/501\\/500 characters/i')).toBeVisible();
+    });
   });
 
   test.describe('Past Generations', () => {
@@ -686,6 +755,74 @@ test.describe('Image Generation E2E Tests', () => {
         page.locator('text=/No generations yet/i')
       ).toBeVisible({ timeout: 3000 });
     });
+
+    test('should limit past generations display to 5', async ({
+      page,
+      request,
+    }) => {
+      const token = authToken;
+
+      // Create 7 generations via API
+      for (let i = 0; i < 7; i++) {
+        await request.post(`${API_BASE_URL}/generations`, {
+          headers: { Authorization: `Bearer ${token}` },
+          data: {
+            prompt: `Test prompt ${i}`,
+            style: 'Realistic',
+          },
+        });
+      }
+
+      await page.goto(`${FRONTEND_URL}/`);
+
+      // Wait for past generations to load
+      await expect(page.locator('text=Recent Generations')).toBeVisible({
+        timeout: 3000,
+      });
+
+      // Should only show 5 generations (limit)
+      const generationCards = page.locator('div:has-text("Test prompt")');
+      const count = await generationCards.count();
+      expect(count).toBeLessThanOrEqual(5);
+    });
+
+    test('should update past generations after new generation', async ({
+      page,
+      request,
+    }) => {
+      const token = authToken;
+
+      // Create initial generation
+      await request.post(`${API_BASE_URL}/generations`, {
+        headers: { Authorization: `Bearer ${token}` },
+        data: {
+          prompt: 'Initial prompt',
+          style: 'Realistic',
+        },
+      });
+
+      await page.goto(`${FRONTEND_URL}/`);
+
+      // Wait for initial generation
+      await expect(page.locator('text=Initial prompt')).toBeVisible({
+        timeout: 3000,
+      });
+
+      // Create new generation via form
+      await page.fill('textarea[id="prompt"]', 'New generation');
+      await page.selectOption('select[id="style"]', 'Anime');
+      await page.click('button:has-text("Generate")');
+
+      // Wait for generation to complete
+      await expect(
+        page.locator('text=/Generating.../i')
+      ).not.toBeVisible({ timeout: 5000 });
+
+      // New generation should appear in past generations
+      await expect(page.locator('text=New generation')).toBeVisible({
+        timeout: 5000,
+      });
+    });
   });
 
   test.describe('Error Handling', () => {
@@ -707,6 +844,46 @@ test.describe('Image Generation E2E Tests', () => {
       await expect(
         page.locator('text=/Failed to generate/i')
       ).toBeVisible({ timeout: 5000 });
+    });
+
+    test('should handle model overloaded error with retry message', async ({
+      page,
+      request,
+    }) => {
+      const token = authToken;
+
+      // Intercept POST /generations and return 503
+      let requestCount = 0;
+      await page.route('**/generations', async route => {
+        if (route.request().method() === 'POST') {
+          requestCount++;
+          if (requestCount <= 2) {
+            // First 2 requests return 503
+            await route.fulfill({
+              status: 503,
+              body: JSON.stringify({ message: 'Model overloaded' }),
+            });
+          } else {
+            // Subsequent requests proceed normally
+            await route.continue();
+          }
+        } else {
+          await route.continue();
+        }
+      });
+
+      await page.goto(`${FRONTEND_URL}/`);
+
+      await page.fill('textarea[id="prompt"]', 'A beautiful sunset');
+      await page.selectOption('select[id="style"]', 'Realistic');
+
+      const generateButton = page.locator('button:has-text("Generate")');
+      await generateButton.click();
+
+      // Should show retry message
+      await expect(
+        page.locator('text=/Model overloaded. Retrying.../i')
+      ).toBeVisible({ timeout: 3000 });
     });
   });
 

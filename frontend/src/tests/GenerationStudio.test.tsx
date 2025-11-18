@@ -393,5 +393,271 @@ describe('GenerationStudio Component', () => {
       expect(screen.getByText('Please enter a prompt')).toBeInTheDocument();
     });
   });
+
+  it('should handle maximum retry attempts (3 retries then failure)', async () => {
+    const user = userEvent.setup();
+    vi.mocked(generationService.getGenerations).mockResolvedValue([]);
+
+    // All 4 calls fail with 503 (initial + 3 retries)
+    vi.mocked(generationService.create)
+      .mockRejectedValueOnce({
+        response: { status: 503 },
+      })
+      .mockRejectedValueOnce({
+        response: { status: 503 },
+      })
+      .mockRejectedValueOnce({
+        response: { status: 503 },
+      })
+      .mockRejectedValueOnce({
+        response: { status: 503 },
+      });
+
+    renderGenerationStudio();
+
+    const promptInput = screen.getByLabelText(/Prompt/i);
+    const generateButton = screen.getByRole('button', { name: /generate/i });
+
+    await act(async () => {
+      await user.type(promptInput, 'A beautiful sunset');
+      await user.click(generateButton);
+    });
+
+    // Wait for all retries to complete
+    await waitFor(
+      () => {
+        expect(
+          screen.getByText(
+            /Model is currently overloaded. Please try again in a few moments./i
+          )
+        ).toBeInTheDocument();
+      },
+      { timeout: 5000 }
+    );
+
+    // Verify generate button is enabled again
+    expect(generateButton).not.toBeDisabled();
+  });
+
+  it('should disable form fields during generation', async () => {
+    const user = userEvent.setup();
+    vi.mocked(generationService.getGenerations).mockResolvedValue([]);
+
+    let resolvePromise: (value: unknown) => void;
+    const delayedPromise = new Promise(resolve => {
+      resolvePromise = resolve;
+    });
+
+    vi.mocked(generationService.create).mockReturnValue(
+      delayedPromise as never
+    );
+
+    renderGenerationStudio();
+
+    const promptInput = screen.getByLabelText(/Prompt/i);
+    const styleSelect = screen.getByLabelText(/Style/i);
+    const generateButton = screen.getByRole('button', { name: /generate/i });
+
+    await act(async () => {
+      await user.type(promptInput, 'A beautiful sunset');
+      await user.click(generateButton);
+    });
+
+    // Form fields should be disabled
+    expect(promptInput).toBeDisabled();
+    expect(styleSelect).toBeDisabled();
+    expect(generateButton).toBeDisabled();
+
+    // Resolve to clean up
+    await act(async () => {
+      resolvePromise!({
+        id: 'gen-1',
+        imageUrl: 'https://example.com/image.jpg',
+        prompt: 'A beautiful sunset',
+        style: 'Realistic',
+        createdAt: new Date().toISOString(),
+        status: 'completed',
+      });
+      await delayedPromise;
+    });
+  });
+
+  it('should show character count for prompt', async () => {
+    const user = userEvent.setup();
+    vi.mocked(generationService.getGenerations).mockResolvedValue([]);
+
+    renderGenerationStudio();
+
+    const promptInput = screen.getByLabelText(/Prompt/i);
+
+    await act(async () => {
+      await user.type(promptInput, 'Test prompt');
+    });
+
+    expect(screen.getByText(/12\/500 characters/i)).toBeInTheDocument();
+  });
+
+  it('should handle abort during retry', async () => {
+    const user = userEvent.setup();
+    vi.mocked(generationService.getGenerations).mockResolvedValue([]);
+
+    // First call fails, then we abort
+    let rejectPromise: (reason?: unknown) => void;
+    const delayedReject = new Promise((_, reject) => {
+      rejectPromise = reject;
+    });
+
+    vi.mocked(generationService.create)
+      .mockRejectedValueOnce({
+        response: { status: 503 },
+      })
+      .mockReturnValueOnce(delayedReject as never);
+
+    renderGenerationStudio();
+
+    const promptInput = screen.getByLabelText(/Prompt/i);
+    const generateButton = screen.getByRole('button', { name: /generate/i });
+
+    await act(async () => {
+      await user.type(promptInput, 'A beautiful sunset');
+      await user.click(generateButton);
+    });
+
+    // Wait for retry message
+    await waitFor(
+      () => {
+        expect(
+          screen.getByText(/Model overloaded. Retrying.../i)
+        ).toBeInTheDocument();
+      },
+      { timeout: 2000 }
+    );
+
+    // Abort during retry
+    const abortButton = screen.getByRole('button', { name: /abort/i });
+    await act(async () => {
+      await user.click(abortButton);
+    });
+
+    // Should show abort message
+    await waitFor(() => {
+      expect(screen.getByText(/Generation aborted/i)).toBeInTheDocument();
+    });
+  });
+
+  it('should upload image with base64 encoding', async () => {
+    const user = userEvent.setup();
+    vi.mocked(generationService.getGenerations).mockResolvedValue([]);
+
+    const mockGeneration = {
+      id: 'gen-1',
+      imageUrl: 'https://example.com/image.jpg',
+      prompt: 'A beautiful sunset',
+      style: 'Realistic',
+      createdAt: new Date().toISOString(),
+      status: 'completed',
+    };
+
+    vi.mocked(generationService.create).mockResolvedValue(mockGeneration);
+
+    renderGenerationStudio();
+
+    const file = new File(['test'], 'test.jpg', { type: 'image/jpeg' });
+    const fileInput = screen.getByLabelText(/Upload Image/i);
+    const promptInput = screen.getByLabelText(/Prompt/i);
+    const generateButton = screen.getByRole('button', { name: /generate/i });
+
+    await act(async () => {
+      await user.upload(fileInput, file);
+      await user.type(promptInput, 'A beautiful sunset');
+      await user.click(generateButton);
+    });
+
+    await waitFor(() => {
+      expect(generationService.create).toHaveBeenCalled();
+      const callArgs = vi.mocked(generationService.create).mock.calls[0][0];
+      expect(callArgs).toHaveProperty('imageUpload');
+      expect(callArgs.imageUpload).toMatch(/^data:image\//);
+    });
+  });
+
+  it('should limit past generations to 5', async () => {
+    const mockGenerations = Array.from({ length: 7 }, (_, i) => ({
+      id: `gen-${i}`,
+      imageUrl: `https://example.com/image${i}.jpg`,
+      prompt: `Test prompt ${i}`,
+      style: 'Realistic',
+      status: 'completed' as const,
+      createdAt: new Date().toISOString(),
+    }));
+
+    vi.mocked(generationService.getGenerations).mockResolvedValue(
+      mockGenerations.slice(0, 5)
+    );
+
+    renderGenerationStudio();
+
+    await waitFor(() => {
+      // Should only show 5 generations
+      const generationCards = screen.getAllByText(/Test prompt/i);
+      expect(generationCards.length).toBeLessThanOrEqual(5);
+    });
+  });
+
+  it('should reload past generations after successful generation', async () => {
+    const user = userEvent.setup();
+    const initialGenerations = [
+      {
+        id: 'gen-1',
+        imageUrl: 'https://example.com/image1.jpg',
+        prompt: 'Old prompt',
+        style: 'Realistic',
+        status: 'completed' as const,
+        createdAt: new Date().toISOString(),
+      },
+    ];
+
+    const newGeneration = {
+      id: 'gen-2',
+      imageUrl: 'https://example.com/image2.jpg',
+      prompt: 'New prompt',
+      style: 'Anime',
+      createdAt: new Date().toISOString(),
+      status: 'completed',
+    };
+
+    vi.mocked(generationService.getGenerations)
+      .mockResolvedValueOnce(initialGenerations)
+      .mockResolvedValueOnce([newGeneration, ...initialGenerations]);
+
+    vi.mocked(generationService.create).mockResolvedValue(newGeneration);
+
+    renderGenerationStudio();
+
+    // Wait for initial load
+    await waitFor(() => {
+      expect(screen.getByText('Old prompt')).toBeInTheDocument();
+    });
+
+    const promptInput = screen.getByLabelText(/Prompt/i);
+    const generateButton = screen.getByRole('button', { name: /generate/i });
+
+    await act(async () => {
+      await user.type(promptInput, 'New prompt');
+      await user.selectOptions(screen.getByLabelText(/Style/i), 'Anime');
+      await user.click(generateButton);
+    });
+
+    // Wait for new generation to appear
+    await waitFor(
+      () => {
+        expect(screen.getByText('New prompt')).toBeInTheDocument();
+      },
+      { timeout: 5000 }
+    );
+
+    // Verify getGenerations was called again
+    expect(generationService.getGenerations).toHaveBeenCalledTimes(2);
+  });
 });
 
