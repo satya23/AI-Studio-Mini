@@ -47,7 +47,7 @@ export default defineConfig({
     {
       command: 'cd backend && npm run dev',
       url: 'http://localhost:5050/health',
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer: true, // Always reuse existing server to avoid port conflicts
       timeout: 120 * 1000,
       stdout: 'pipe',
       stderr: 'pipe',
@@ -60,7 +60,7 @@ export default defineConfig({
     {
       command: 'cd frontend && npm run dev',
       url: 'http://localhost:3000',
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer: true, // Always reuse existing server to avoid port conflicts
       timeout: 120 * 1000,
       stdout: 'pipe',
       stderr: 'pipe',
