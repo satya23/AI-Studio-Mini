@@ -1,9 +1,12 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import {
   generationService,
   Generation,
   CreateGenerationData,
-} from '../services/generation.service.js';
+} from '../services/generation.js';
+import { useGenerate } from '../hooks/useGenerate.js';
+import { useRetry } from '../hooks/useRetry.js';
+import Upload from './Upload.js';
 
 const STYLES = [
   'Realistic',
@@ -21,9 +24,47 @@ export default function GenerationStudio() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [retryCount, setRetryCount] = useState(0);
   const [pastGenerations, setPastGenerations] = useState<Generation[]>([]);
-  const abortControllerRef = useRef<AbortController | null>(null);
+
+  const retry = useRetry({
+    maxRetries: 3,
+    onRetry: retryCount => {
+      setError(retry.getRetryMessage(retryCount));
+    },
+    onMaxRetriesReached: () => {
+      setIsGenerating(false);
+      setError(retry.getMaxRetriesMessage());
+      retry.reset();
+    },
+  });
+
+  const { generate, abort } = useGenerate({
+    onSuccess: async () => {
+      await loadPastGenerations();
+      setIsGenerating(false);
+      retry.reset();
+      setError(null);
+    },
+    onError: (error, errorMessage) => {
+      // Check if we should retry (for 503 errors)
+      if (retry.shouldRetry(error)) {
+        // Schedule retry with exponential backoff
+        const delay = retry.getRetryDelay(retry.retryCount - 1); // -1 because shouldRetry already incremented
+        setTimeout(() => {
+          handleGenerate();
+        }, delay);
+      } else {
+        setIsGenerating(false);
+        setError(errorMessage);
+        retry.reset();
+      }
+    },
+    onAbort: () => {
+      setIsGenerating(false);
+      setError('Generation aborted');
+      retry.reset();
+    },
+  });
 
   // Fetch past generations on mount
   useEffect(() => {
@@ -37,33 +78,6 @@ export default function GenerationStudio() {
     } catch (err) {
       console.error('Failed to load past generations:', err);
     }
-  };
-
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Validate file size (10MB max)
-    if (file.size > 10 * 1024 * 1024) {
-      setError('Image size must be less than 10MB');
-      return;
-    }
-
-    // Validate file type
-    if (!file.type.match(/^image\/(jpeg|jpg|png)$/i)) {
-      setError('Image must be JPEG or PNG format');
-      return;
-    }
-
-    setError(null);
-    setImageFile(file);
-
-    // Create preview
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setImagePreview(reader.result as string);
-    };
-    reader.readAsDataURL(file);
   };
 
   const convertImageToBase64 = (file: File): Promise<string> => {
@@ -86,122 +100,24 @@ export default function GenerationStudio() {
 
     setIsGenerating(true);
     setError(null);
-    setRetryCount(0);
+    retry.reset();
 
-    // Create abort controller for this generation
-    abortControllerRef.current = new AbortController();
+    const data: CreateGenerationData = {
+      prompt: prompt.trim(),
+      style,
+    };
 
-    await attemptGeneration(abortControllerRef.current.signal);
-  };
-
-  const attemptGeneration = async (signal: AbortSignal) => {
-    try {
-      const data: CreateGenerationData = {
-        prompt: prompt.trim(),
-        style,
-      };
-
-      // Convert image to base64 if provided
-      if (imageFile) {
-        const base64Image = await convertImageToBase64(imageFile);
-        data.imageUpload = base64Image;
-      }
-
-      await generationService.create(data, signal);
-
-      // Check if aborted
-      if (signal.aborted) {
-        return;
-      }
-
-      // Success - reload past generations
-      await loadPastGenerations();
-      setIsGenerating(false);
-      setRetryCount(0);
-      abortControllerRef.current = null;
-
-      // Show success message briefly
-      setError(null);
-    } catch (err: unknown) {
-      // Check if aborted
-      if (signal.aborted) {
-        setIsGenerating(false);
-        setError('Generation aborted');
-        abortControllerRef.current = null;
-        return;
-      }
-
-      // Handle abort error
-      if (
-        err &&
-        typeof err === 'object' &&
-        'name' in err &&
-        err.name === 'CanceledError'
-      ) {
-        setIsGenerating(false);
-        setError('Generation aborted');
-        setRetryCount(0);
-        abortControllerRef.current = null;
-        return;
-      }
-
-      // Handle model overloaded error
-      if (
-        err &&
-        typeof err === 'object' &&
-        'response' in err &&
-        err.response &&
-        typeof err.response === 'object' &&
-        'status' in err.response &&
-        err.response.status === 503
-      ) {
-        if (retryCount < 3) {
-          const newRetryCount = retryCount + 1;
-          setRetryCount(newRetryCount);
-          setError(`Model overloaded. Retrying... (${newRetryCount}/3)`);
-          // Retry after a short delay
-          setTimeout(() => {
-            attemptGeneration(signal);
-          }, 1000);
-        } else {
-          setIsGenerating(false);
-          setError(
-            'Model is currently overloaded. Please try again in a few moments.'
-          );
-          setRetryCount(0);
-          abortControllerRef.current = null;
-        }
-      } else {
-        let message = 'Failed to generate image. Please try again.';
-        if (
-          err &&
-          typeof err === 'object' &&
-          'response' in err &&
-          err.response &&
-          typeof err.response === 'object' &&
-          'data' in err.response &&
-          err.response.data &&
-          typeof err.response.data === 'object' &&
-          'message' in err.response.data &&
-          typeof err.response.data.message === 'string'
-        ) {
-          message = err.response.data.message;
-        }
-        setIsGenerating(false);
-        setError(message);
-        setRetryCount(0);
-        abortControllerRef.current = null;
-      }
+    // Convert image to base64 if provided
+    if (imageFile) {
+      const base64Image = await convertImageToBase64(imageFile);
+      data.imageUpload = base64Image;
     }
+
+    await generate(data);
   };
 
   const handleAbort = () => {
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-      setIsGenerating(false);
-      setError('Generation aborted');
-      abortControllerRef.current = null;
-    }
+    abort();
   };
 
   const handleRestoreGeneration = (generation: Generation) => {
@@ -210,11 +126,6 @@ export default function GenerationStudio() {
     setImageFile(null);
     setImagePreview(generation.imageUrl);
     setError(null);
-  };
-
-  const handleClearImage = () => {
-    setImageFile(null);
-    setImagePreview(null);
   };
 
   return (
@@ -252,56 +163,13 @@ export default function GenerationStudio() {
               )}
 
               {/* Image Upload */}
-              <div className="mb-6">
-                <label
-                  htmlFor="imageUpload"
-                  className="block text-sm font-medium text-gray-700 mb-2"
-                >
-                  Upload Image (Optional, max 10MB, JPEG/PNG)
-                </label>
-                <div className="mt-1 flex items-center space-x-4">
-                  <label className="cursor-pointer">
-                    <span className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
-                      Choose File
-                    </span>
-                    <input
-                      id="imageUpload"
-                      type="file"
-                      accept="image/jpeg,image/jpg,image/png"
-                      onChange={handleImageChange}
-                      className="hidden"
-                      disabled={isGenerating}
-                    />
-                  </label>
-                  {imageFile && (
-                    <span className="text-sm text-gray-600">
-                      {imageFile.name} (
-                      {(imageFile.size / 1024 / 1024).toFixed(2)} MB)
-                    </span>
-                  )}
-                  {imagePreview && (
-                    <button
-                      type="button"
-                      onClick={handleClearImage}
-                      className="text-sm text-red-600 hover:text-red-800"
-                      disabled={isGenerating}
-                    >
-                      Clear
-                    </button>
-                  )}
-                </div>
-
-                {/* Image Preview */}
-                {imagePreview && (
-                  <div className="mt-4">
-                    <img
-                      src={imagePreview}
-                      alt="Preview"
-                      className="max-w-full h-auto rounded-lg border border-gray-300 max-h-64 object-contain"
-                    />
-                  </div>
-                )}
-              </div>
+              <Upload
+                onFileSelect={setImageFile}
+                onPreviewChange={setImagePreview}
+                imagePreview={imagePreview}
+                disabled={isGenerating}
+                onError={setError}
+              />
 
               {/* Prompt Input */}
               <div className="mb-6">

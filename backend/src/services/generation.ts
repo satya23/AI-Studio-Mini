@@ -11,11 +11,6 @@ export class GenerationService {
     const delay = Math.random() * 1000 + 1000; // 1000-2000ms
     await new Promise(resolve => setTimeout(resolve, delay));
 
-    // 20% chance of model overloaded error
-    if (Math.random() < 0.2) {
-      throw new Error('Model overloaded');
-    }
-
     // Simulate image generation - in a real app, this would call an AI service
     // If imageUpload is provided, use it; otherwise generate placeholder
     const imageUrl =
