@@ -1,12 +1,18 @@
 /// <reference types="jest" />
 import { GenerationService } from '../src/services/generation.service.js';
 import { GenerationModel } from '../src/models/generation.model.js';
-import db from '../src/db/database.js';
+import { clearDatabase } from '../src/db/database.js';
 
 describe('GenerationService', () => {
-  beforeEach(() => {
-    // Clear generations table before each test
-    db.exec('DELETE FROM generations');
+  let randomSpy: jest.SpyInstance<number, []>;
+
+  beforeEach(async () => {
+    randomSpy = jest.spyOn(Math, 'random').mockReturnValue(0.5);
+    await clearDatabase();
+  });
+
+  afterEach(() => {
+    randomSpy.mockRestore();
   });
 
   describe('create', () => {
@@ -52,7 +58,7 @@ describe('GenerationService', () => {
       const result = await GenerationService.create(userId, input);
 
       // Verify it was saved to database
-      const found = GenerationModel.findById(result.id);
+      const found = await GenerationModel.findById(result.id);
       expect(found).not.toBeNull();
       expect(found?.prompt).toBe('Test prompt');
     });

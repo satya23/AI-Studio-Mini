@@ -23,7 +23,7 @@ export class GenerationService {
       `https://placeholder.com/512x512?text=${encodeURIComponent(input.prompt)}`;
 
     // Create generation with completed status (simulated immediate completion)
-    const generation = GenerationModel.create({
+    const generation = await GenerationModel.create({
       userId,
       prompt: input.prompt,
       style: input.style,
@@ -38,7 +38,7 @@ export class GenerationService {
     userId: string,
     limit?: number
   ): Promise<Generation[]> {
-    const generations = GenerationModel.findByUserId(userId);
+    const generations = await GenerationModel.findByUserId(userId);
     if (limit && limit > 0) {
       return generations.slice(0, limit);
     }

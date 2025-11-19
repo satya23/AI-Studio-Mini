@@ -1,16 +1,17 @@
-import db from '../db/database.js';
+import { getDatabase, saveDatabase } from '../db/database.js';
 import { User } from '../types/index.js';
 
 export class UserModel {
-  static create(user: Omit<User, 'id' | 'createdAt'>): User {
+  static async create(user: Omit<User, 'id' | 'createdAt'>): Promise<User> {
     const id = crypto.randomUUID();
     const createdAt = new Date().toISOString();
 
-    const stmt = db.prepare(
-      'INSERT INTO users (id, email, password, createdAt) VALUES (?, ?, ?, ?)'
+    const db = await getDatabase();
+    db.run(
+      'INSERT INTO users (id, email, password, createdAt) VALUES (?, ?, ?, ?)',
+      [id, user.email, user.password, createdAt]
     );
-
-    stmt.run(id, user.email, user.password, createdAt);
+    await saveDatabase();
 
     return {
       id,
@@ -20,16 +21,19 @@ export class UserModel {
     };
   }
 
-  static findByEmail(email: string): User | null {
+  static async findByEmail(email: string): Promise<User | null> {
+    const db = await getDatabase();
     const stmt = db.prepare('SELECT * FROM users WHERE email = ?');
-    const row = stmt.get(email) as
-      | {
+    stmt.bind([email]);
+    const row = stmt.step()
+      ? (stmt.getAsObject() as {
           id: string;
           email: string;
           password: string;
           createdAt: string;
-        }
-      | undefined;
+        })
+      : undefined;
+    stmt.free();
 
     if (!row) {
       return null;
@@ -43,16 +47,19 @@ export class UserModel {
     };
   }
 
-  static findById(id: string): User | null {
+  static async findById(id: string): Promise<User | null> {
+    const db = await getDatabase();
     const stmt = db.prepare('SELECT * FROM users WHERE id = ?');
-    const row = stmt.get(id) as
-      | {
+    stmt.bind([id]);
+    const row = stmt.step()
+      ? (stmt.getAsObject() as {
           id: string;
           email: string;
           password: string;
           createdAt: string;
-        }
-      | undefined;
+        })
+      : undefined;
+    stmt.free();
 
     if (!row) {
       return null;

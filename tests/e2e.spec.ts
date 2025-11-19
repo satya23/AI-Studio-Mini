@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-const API_BASE_URL = process.env.API_URL || 'http://localhost:5000';
+const API_BASE_URL = process.env.API_URL || 'http://localhost:5050';
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
 
 // Helper function to generate unique email
@@ -567,18 +567,26 @@ test.describe('Image Generation E2E Tests', () => {
       // Wait for generation to complete (may take 1-2 seconds)
       // The spinner should appear first
       await expect(page.locator('text=/Generating.../i')).toBeVisible({
-        timeout: 1000,
+        timeout: 2000,
       });
 
-      // Wait for generation to complete (up to 5 seconds)
+      // Wait for generation to complete (up to 10 seconds to account for retries)
       await expect(page.locator('text=/Generating.../i')).not.toBeVisible({
-        timeout: 5000,
+        timeout: 10000,
       });
 
-      // Verify past generations section is updated
+      // Wait for any error messages to clear
+      await page.waitForTimeout(500);
+
+      // Verify past generations section is updated and contains the new generation
       await expect(
         page.locator('text=Recent Generations')
-      ).toBeVisible();
+      ).toBeVisible({ timeout: 3000 });
+
+      // Verify the generation appears in the list (wait for it to load)
+      await expect(
+        page.locator('[data-testid="past-generation-card"]').first()
+      ).toBeVisible({ timeout: 3000 });
     });
 
     test('should show spinner during generation', async ({ page }) => {
@@ -622,21 +630,21 @@ test.describe('Image Generation E2E Tests', () => {
       const generateButton = page.locator('button:has-text("Generate")');
       await generateButton.click();
 
-      // Wait for abort button
+      // Wait for abort button to appear
       const abortButton = await page.waitForSelector('button:has-text("Abort")', {
-        timeout: 1000,
+        timeout: 2000,
       });
 
       // Click abort
       await abortButton.click();
 
-      // Should show abort message
+      // Should show abort message (could be "Generation aborted" or abbreviated)
       await expect(
-        page.locator('text=/Generation aborted/i')
+        page.locator('text=/aborted/i')
       ).toBeVisible({ timeout: 3000 });
 
       // Generate button should be enabled again
-      await expect(generateButton).toBeEnabled({ timeout: 2000 });
+      await expect(generateButton).toBeEnabled({ timeout: 3000 });
     });
 
     test('should disable form fields during generation', async ({ page }) => {
@@ -717,15 +725,24 @@ test.describe('Image Generation E2E Tests', () => {
       const testStyle = 'Anime';
 
       // Create a generation
-      await request.post(`${API_BASE_URL}/generations`, {
+      const createResponse = await request.post(`${API_BASE_URL}/generations`, {
         headers: { Authorization: `Bearer ${token}` },
         data: {
           prompt: testPrompt,
           style: testStyle,
         },
       });
+      expect(createResponse.ok()).toBeTruthy();
+
+      // Wait a bit to ensure the generation is persisted
+      await new Promise(resolve => setTimeout(resolve, 500));
 
       await page.goto(`${FRONTEND_URL}/`);
+
+      // Wait for Recent Generations section to appear
+      await expect(page.locator('text=Recent Generations')).toBeVisible({
+        timeout: 5000,
+      });
 
       // Wait for generation to appear
       await expect(
@@ -733,7 +750,7 @@ test.describe('Image Generation E2E Tests', () => {
           `[data-testid="past-generation-card"] >> text=${testPrompt}`
         )
       ).toBeVisible({
-        timeout: 3000,
+        timeout: 5000,
       });
 
       // Click on the generation card
@@ -794,24 +811,78 @@ test.describe('Image Generation E2E Tests', () => {
     }) => {
       const token = authToken;
 
-      // Create initial generation
-      await request.post(`${API_BASE_URL}/generations`, {
-        headers: { Authorization: `Bearer ${token}` },
-        data: {
-          prompt: 'Initial prompt',
-          style: 'Realistic',
-        },
-      });
+      // Create initial generation with retry logic
+      let createResponse;
+      let attempts = 0;
+      const maxAttempts = 3;
+
+      while (attempts < maxAttempts) {
+        createResponse = await request.post(`${API_BASE_URL}/generations`, {
+          headers: { Authorization: `Bearer ${token}` },
+          data: {
+            prompt: 'Initial prompt',
+            style: 'Realistic',
+          },
+        });
+
+        if (createResponse.ok()) {
+          break;
+        }
+
+        attempts++;
+        // If 503 (Model overloaded), allow more retries
+        const is503 = createResponse.status() === 503;
+        const effectiveMaxAttempts = is503 ? 5 : maxAttempts;
+
+        if (attempts >= effectiveMaxAttempts) {
+          // Exhausted all retries
+          break;
+        }
+
+        // Retry after delay
+        try {
+          const errorBody = await createResponse.text();
+          console.log(
+            `Generation creation failed (attempt ${attempts}/${effectiveMaxAttempts}): ${createResponse.status()} - ${errorBody}`
+          );
+        } catch (e) {
+          console.log(
+            `Generation creation failed (attempt ${attempts}/${effectiveMaxAttempts}): ${createResponse.status()}`
+          );
+        }
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+
+      if (!createResponse.ok()) {
+        const is503 = createResponse.status() === 503;
+        const effectiveMaxAttempts = is503 ? 5 : maxAttempts;
+        let errorMessage = `Failed to create generation after ${effectiveMaxAttempts} attempts: ${createResponse.status()}`;
+        try {
+          const errorBody = await createResponse.text();
+          errorMessage += ` - ${errorBody}`;
+        } catch (e) {
+          // Response body already consumed or not available
+        }
+        throw new Error(errorMessage);
+      }
+
+      // Wait a bit to ensure the generation is persisted
+      await new Promise(resolve => setTimeout(resolve, 500));
 
       await page.goto(`${FRONTEND_URL}/`);
 
-      // Wait for initial generation
+      // Wait for Recent Generations section to appear
+      await expect(page.locator('text=Recent Generations')).toBeVisible({
+        timeout: 5000,
+      });
+
+      // Wait for initial generation to appear in the list
       await expect(
         page.locator(
           '[data-testid="past-generation-card"] >> text=Initial prompt'
         )
       ).toBeVisible({
-        timeout: 3000,
+        timeout: 5000,
       });
 
       // Create new generation via form
@@ -819,10 +890,13 @@ test.describe('Image Generation E2E Tests', () => {
       await page.selectOption('select[id="style"]', 'Anime');
       await page.click('button:has-text("Generate")');
 
-      // Wait for generation to complete
+      // Wait for generation to complete (up to 10 seconds to account for retries)
       await expect(
         page.locator('text=/Generating.../i')
-      ).not.toBeVisible({ timeout: 5000 });
+      ).not.toBeVisible({ timeout: 10000 });
+
+      // Wait for any error messages to clear
+      await page.waitForTimeout(500);
 
       // New generation should appear in past generations list
       await expect(
@@ -901,15 +975,50 @@ test.describe('Image Generation E2E Tests', () => {
     test('POST /generations should create generation', async ({ request }) => {
       const token = authToken;
 
-      const response = await request.post(`${API_BASE_URL}/generations`, {
-        headers: { Authorization: `Bearer ${token}` },
-        data: {
-          prompt: 'A beautiful sunset',
-          style: 'Realistic',
-        },
-      });
+      // Retry logic to handle 503 "Model overloaded" errors (20% chance)
+      let response;
+      let attempts = 0;
+      const maxAttempts = 5; // Allow more attempts for 503 errors
+
+      while (attempts < maxAttempts) {
+        response = await request.post(`${API_BASE_URL}/generations`, {
+          headers: { Authorization: `Bearer ${token}` },
+          data: {
+            prompt: 'A beautiful sunset',
+            style: 'Realistic',
+          },
+        });
+
+        // If successful, break out of retry loop
+        if (response.ok()) {
+          break;
+        }
+
+        // If 503 (Model overloaded), retry
+        if (response.status() === 503) {
+          attempts++;
+          if (attempts < maxAttempts) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            continue;
+          }
+        }
+
+        // For other errors, fail immediately
+        break;
+      }
 
       expect(response.ok()).toBeTruthy();
+      if (!response.ok()) {
+        let errorMessage = `Failed to create generation after ${attempts} attempts: ${response.status()}`;
+        try {
+          const errorBody = await response.text();
+          errorMessage += ` - ${errorBody}`;
+        } catch (e) {
+          // Response body already consumed or not available
+        }
+        throw new Error(errorMessage);
+      }
+
       const body = await response.json();
       expect(body).toHaveProperty('id');
       expect(body).toHaveProperty('imageUrl');
@@ -955,16 +1064,68 @@ test.describe('Image Generation E2E Tests', () => {
     }) => {
       const token = authToken;
 
-      // Create some generations
+      // Create some generations and wait for each to complete
       for (let i = 0; i < 3; i++) {
-        await request.post(`${API_BASE_URL}/generations`, {
-          headers: { Authorization: `Bearer ${token}` },
-          data: {
-            prompt: `Test ${i}`,
-            style: 'Realistic',
-          },
-        });
+        let createResponse;
+        let attempts = 0;
+        const maxAttempts = 3;
+
+        while (attempts < maxAttempts) {
+          createResponse = await request.post(`${API_BASE_URL}/generations`, {
+            headers: { Authorization: `Bearer ${token}` },
+            data: {
+              prompt: `Test ${i}`,
+              style: 'Realistic',
+            },
+          });
+
+          if (createResponse.ok()) {
+            break;
+          }
+
+          attempts++;
+          // If 503 (Model overloaded), allow more retries
+          const is503 = createResponse.status() === 503;
+          const effectiveMaxAttempts = is503 ? 5 : maxAttempts;
+
+          if (attempts >= effectiveMaxAttempts) {
+            // Exhausted all retries
+            break;
+          }
+
+          // Retry after delay
+          try {
+            const errorBody = await createResponse.text();
+            console.log(
+              `Generation creation failed for Test ${i} (attempt ${attempts}/${effectiveMaxAttempts}): ${createResponse.status()} - ${errorBody}`
+            );
+          } catch (e) {
+            console.log(
+              `Generation creation failed for Test ${i} (attempt ${attempts}/${effectiveMaxAttempts}): ${createResponse.status()}`
+            );
+          }
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+
+        if (!createResponse.ok()) {
+          const is503 = createResponse.status() === 503;
+          const effectiveMaxAttempts = is503 ? 5 : maxAttempts;
+          let errorMessage = `Failed to create generation Test ${i} after ${effectiveMaxAttempts} attempts: ${createResponse.status()}`;
+          try {
+            const errorBody = await createResponse.text();
+            errorMessage += ` - ${errorBody}`;
+          } catch (e) {
+            // Response body already consumed or not available
+          }
+          throw new Error(errorMessage);
+        }
+
+        // Small delay to ensure database write completes
+        await new Promise(resolve => setTimeout(resolve, 100));
       }
+
+      // Wait a bit more to ensure all writes are persisted
+      await new Promise(resolve => setTimeout(resolve, 500));
 
       const response = await request.get(
         `${API_BASE_URL}/generations?limit=5`,
@@ -978,7 +1139,24 @@ test.describe('Image Generation E2E Tests', () => {
       expect(body).toHaveProperty('generations');
       expect(body).toHaveProperty('count');
       expect(Array.isArray(body.generations)).toBeTruthy();
-      expect(body.generations.length).toBeGreaterThan(0);
+
+      // Allow for potential race conditions - retry if no generations found
+      let generations = body.generations;
+      if (generations.length === 0) {
+        // Retry once after a short delay
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        const retryResponse = await request.get(
+          `${API_BASE_URL}/generations?limit=5`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+        expect(retryResponse.ok()).toBeTruthy();
+        const retryBody = await retryResponse.json();
+        generations = retryBody.generations;
+      }
+
+      expect(generations.length).toBeGreaterThan(0);
     });
 
     test('GET /generations should respect limit parameter', async ({

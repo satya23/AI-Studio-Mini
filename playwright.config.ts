@@ -46,15 +46,27 @@ export default defineConfig({
   webServer: [
     {
       command: 'cd backend && npm run dev',
-      url: 'http://localhost:5000/health',
-      reuseExistingServer: !process.env.CI,
+      url: 'http://localhost:5050/health',
+      reuseExistingServer: true, // Always reuse existing server to avoid port conflicts
       timeout: 120 * 1000,
+      stdout: 'pipe',
+      stderr: 'pipe',
+      env: {
+        PORT: '5050',
+        NODE_ENV: 'test',
+        JWT_SECRET: 'test-secret-key-for-playwright',
+      },
     },
     {
       command: 'cd frontend && npm run dev',
       url: 'http://localhost:3000',
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer: true, // Always reuse existing server to avoid port conflicts
       timeout: 120 * 1000,
+      stdout: 'pipe',
+      stderr: 'pipe',
+      env: {
+        VITE_API_URL: 'http://localhost:5050',
+      },
     },
   ],
 });

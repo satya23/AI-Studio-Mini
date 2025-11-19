@@ -172,8 +172,23 @@ export default function GenerationStudio() {
           abortControllerRef.current = null;
         }
       } else {
+        let message = 'Failed to generate image. Please try again.';
+        if (
+          err &&
+          typeof err === 'object' &&
+          'response' in err &&
+          err.response &&
+          typeof err.response === 'object' &&
+          'data' in err.response &&
+          err.response.data &&
+          typeof err.response.data === 'object' &&
+          'message' in err.response.data &&
+          typeof err.response.data.message === 'string'
+        ) {
+          message = err.response.data.message;
+        }
         setIsGenerating(false);
-        setError('Failed to generate image. Please try again.');
+        setError(message);
         setRetryCount(0);
         abortControllerRef.current = null;
       }

@@ -1,7 +1,7 @@
 /// <reference types="jest" />
 import request from 'supertest';
 import app from '../src/index.js';
-import db from '../src/db/database.js';
+import { clearDatabase } from '../src/db/database.js';
 
 // Helper function to create a user and get auth token
 async function createUserAndGetToken() {
@@ -28,10 +28,8 @@ async function createUserAndGetToken() {
 }
 
 describe('POST /generations', () => {
-  beforeEach(() => {
-    // Clear generations and users tables before each test
-    db.exec('DELETE FROM generations');
-    db.exec('DELETE FROM users');
+  beforeEach(async () => {
+    await clearDatabase();
   });
 
   describe('Authentication', () => {
@@ -343,10 +341,8 @@ describe('POST /generations', () => {
 });
 
 describe('GET /generations', () => {
-  beforeEach(() => {
-    // Clear generations and users tables before each test
-    db.exec('DELETE FROM generations');
-    db.exec('DELETE FROM users');
+  beforeEach(async () => {
+    await clearDatabase();
   });
 
   describe('Authentication', () => {
