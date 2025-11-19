@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { generationService } from '../services/generation.service.js';
+import { generationService } from '../services/generation.js';
 import api from '../services/api.js';
 
 vi.mock('../services/api.js', () => ({

@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { AuthService } from '../services/auth.service.js';
+import { AuthService } from '../services/auth.js';
 import { SignupInput, LoginInput } from '../schemas/auth.schema.js';
 
 export const signup = async (req: Request, res: Response) => {

@@ -8,20 +8,20 @@ import {
 } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { BrowserRouter } from 'react-router-dom';
-import { AuthProvider } from '../contexts/AuthContext.js';
-import GenerationStudio from '../components/GenerationStudio.js';
-import { generationService } from '../services/generation.js';
-import { authService } from '../services/auth.js';
+import { AuthProvider } from '../src/contexts/AuthContext.js';
+import GenerationStudio from '../src/components/GenerationStudio.js';
+import { generationService } from '../src/services/generation.js';
+import { authService } from '../src/services/auth.js';
 
 // Mock the services
-vi.mock('../services/generation.js', () => ({
+vi.mock('../src/services/generation.js', () => ({
   generationService: {
     create: vi.fn(),
     getGenerations: vi.fn(),
   },
 }));
 
-vi.mock('../services/auth.js', () => ({
+vi.mock('../src/services/auth.js', () => ({
   authService: {
     getCurrentUser: vi.fn(),
     isAuthenticated: vi.fn(),

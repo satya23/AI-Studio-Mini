@@ -4,10 +4,11 @@ import { UserModel } from '../src/models/user.model.js';
 import { clearDatabase } from '../src/db/database.js';
 
 const createUserForId = async (userId: string) => {
-  await UserModel.create({
+  const user = await UserModel.create({
     email: `${userId}-${Date.now()}@example.com`,
     password: 'password123',
   });
+  return user.id;
 };
 
 describe('GenerationModel', () => {
@@ -17,19 +18,19 @@ describe('GenerationModel', () => {
 
   describe('create', () => {
     it('should create a new generation successfully', async () => {
+      const userId = await createUserForId('user-123');
       const generationData = {
-        userId: 'user-123',
+        userId,
         prompt: 'A beautiful sunset over mountains',
         style: 'realistic',
         imageUrl: 'https://example.com/image.jpg',
         status: 'pending' as const,
       };
 
-      await createUserForId(generationData.userId);
       const result = await GenerationModel.create(generationData);
 
       expect(result).toHaveProperty('id');
-      expect(result).toHaveProperty('userId', 'user-123');
+      expect(result).toHaveProperty('userId', userId);
       expect(result).toHaveProperty(
         'prompt',
         'A beautiful sunset over mountains'
@@ -45,8 +46,9 @@ describe('GenerationModel', () => {
     });
 
     it('should generate unique IDs for different generations', async () => {
+      const userId = await createUserForId('user-123');
       const generationData1 = {
-        userId: 'user-123',
+        userId,
         prompt: 'Prompt 1',
         style: 'style1',
         imageUrl: 'https://example.com/image1.jpg',
@@ -54,14 +56,13 @@ describe('GenerationModel', () => {
       };
 
       const generationData2 = {
-        userId: 'user-123',
+        userId,
         prompt: 'Prompt 2',
         style: 'style2',
         imageUrl: 'https://example.com/image2.jpg',
         status: 'pending' as const,
       };
 
-      await createUserForId(generationData1.userId);
       const gen1 = await GenerationModel.create(generationData1);
       const gen2 = await GenerationModel.create(generationData2);
 
@@ -69,8 +70,9 @@ describe('GenerationModel', () => {
     });
 
     it('should set createdAt timestamp', async () => {
+      const userId = await createUserForId('user-123');
       const generationData = {
-        userId: 'user-123',
+        userId,
         prompt: 'Test prompt',
         style: 'test',
         imageUrl: 'https://example.com/image.jpg',
@@ -78,7 +80,6 @@ describe('GenerationModel', () => {
       };
 
       const before = new Date();
-      await createUserForId(generationData.userId);
       const result = await GenerationModel.create(generationData);
       const after = new Date();
 
@@ -91,7 +92,7 @@ describe('GenerationModel', () => {
 
   describe('findByUserId', () => {
     it('should return all generations for a user', async () => {
-      const userId = 'user-123';
+      const userId = await createUserForId('user-123');
       const generationData1 = {
         userId,
         prompt: 'Prompt 1',
@@ -107,15 +108,17 @@ describe('GenerationModel', () => {
         status: 'completed' as const,
       };
 
-      await createUserForId(userId);
-      await GenerationModel.create(generationData1);
-      await GenerationModel.create(generationData2);
+      const gen1 = await GenerationModel.create(generationData1);
+      // Small delay to ensure different timestamps
+      await new Promise(resolve => setTimeout(resolve, 10));
+      const gen2 = await GenerationModel.create(generationData2);
 
       const results = await GenerationModel.findByUserId(userId);
 
       expect(results).toHaveLength(2);
-      expect(results[0].prompt).toBe('Prompt 2'); // Should be ordered by createdAt DESC
-      expect(results[1].prompt).toBe('Prompt 1');
+      // Should be ordered by createdAt DESC (most recent first)
+      expect(results[0].id).toBe(gen2.id);
+      expect(results[1].id).toBe(gen1.id);
     });
 
     it('should return empty array for user with no generations', async () => {
@@ -124,10 +127,9 @@ describe('GenerationModel', () => {
     });
 
     it('should only return generations for the specified user', async () => {
-      const userId1 = 'user-123';
-      const userId2 = 'user-456';
+      const userId1 = await createUserForId('user-123');
+      const userId2 = await createUserForId('user-456');
 
-      await createUserForId(userId1);
       await GenerationModel.create({
         userId: userId1,
         prompt: 'User 1 prompt',
@@ -136,7 +138,6 @@ describe('GenerationModel', () => {
         status: 'pending' as const,
       });
 
-      await createUserForId(userId2);
       await GenerationModel.create({
         userId: userId2,
         prompt: 'User 2 prompt',
@@ -154,15 +155,15 @@ describe('GenerationModel', () => {
 
   describe('findById', () => {
     it('should return generation by id', async () => {
+      const userId = await createUserForId('user-123');
       const generationData = {
-        userId: 'user-123',
+        userId,
         prompt: 'Test prompt',
         style: 'test',
         imageUrl: 'https://example.com/image.jpg',
         status: 'pending' as const,
       };
 
-      await createUserForId(generationData.userId);
       const created = await GenerationModel.create(generationData);
       const found = await GenerationModel.findById(created.id);
 

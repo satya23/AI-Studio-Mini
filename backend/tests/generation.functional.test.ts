@@ -1,7 +1,40 @@
 /// <reference types="jest" />
-import request from 'supertest';
+import request, { Response } from 'supertest';
 import app from '../src/index.js';
 import { clearDatabase } from '../src/db/database.js';
+
+// Helper function to create generation with retry logic for 20% overload chance
+const createGenerationWithRetry = async (
+  token: string,
+  data: { prompt: string; style: string; imageUpload?: string },
+  maxAttempts = 5
+): Promise<Response> => {
+  let response: Response | null = null;
+  let attempts = 0;
+  while (attempts < maxAttempts) {
+    response = await request(app)
+      .post('/generations')
+      .set('Authorization', `Bearer ${token}`)
+      .send(data);
+
+    if (response.status === 201) {
+      return response;
+    }
+    if (response.status === 503) {
+      attempts++;
+      await new Promise(resolve => setTimeout(resolve, 100));
+      continue;
+    }
+    // If not 503 and not 201, return the response (could be validation error, etc.)
+    return response;
+  }
+  // If all retries exhausted, return the last response
+  // This should not happen in practice, but TypeScript needs this
+  if (!response) {
+    throw new Error('Failed to create generation after all retries');
+  }
+  return response;
+};
 
 // Helper function to create a user and get auth token
 async function createUserAndGetToken() {
@@ -64,13 +97,10 @@ describe('POST /generations', () => {
     it('should create a new generation with valid data', async () => {
       const { token } = await createUserAndGetToken();
 
-      const response = await request(app)
-        .post('/generations')
-        .set('Authorization', `Bearer ${token}`)
-        .send({
-          prompt: 'A beautiful sunset over mountains',
-          style: 'realistic',
-        });
+      const response = await createGenerationWithRetry(token, {
+        prompt: 'A beautiful sunset over mountains',
+        style: 'realistic',
+      });
 
       expect(response.status).toBe(201);
       expect(response.body).toHaveProperty('id');
@@ -89,13 +119,10 @@ describe('POST /generations', () => {
     it('should generate a placeholder image URL when imageUpload not provided', async () => {
       const { token } = await createUserAndGetToken();
 
-      const response = await request(app)
-        .post('/generations')
-        .set('Authorization', `Bearer ${token}`)
-        .send({
-          prompt: 'Test prompt',
-          style: 'artistic',
-        });
+      const response = await createGenerationWithRetry(token, {
+        prompt: 'Test prompt',
+        style: 'artistic',
+      });
 
       expect(response.status).toBe(201);
       expect(response.body.imageUrl).toContain('placeholder.com');
@@ -105,14 +132,11 @@ describe('POST /generations', () => {
     it('should use imageUpload when provided', async () => {
       const { token } = await createUserAndGetToken();
 
-      const response = await request(app)
-        .post('/generations')
-        .set('Authorization', `Bearer ${token}`)
-        .send({
-          prompt: 'Test prompt',
-          style: 'artistic',
-          imageUpload: 'https://example.com/custom-image.jpg',
-        });
+      const response = await createGenerationWithRetry(token, {
+        prompt: 'Test prompt',
+        style: 'artistic',
+        imageUpload: 'https://example.com/custom-image.jpg',
+      });
 
       expect(response.status).toBe(201);
       expect(response.body.imageUrl).toBe(
@@ -123,13 +147,10 @@ describe('POST /generations', () => {
     it('should create generation with completed status', async () => {
       const { token } = await createUserAndGetToken();
 
-      const response = await request(app)
-        .post('/generations')
-        .set('Authorization', `Bearer ${token}`)
-        .send({
-          prompt: 'Test prompt',
-          style: 'test',
-        });
+      const response = await createGenerationWithRetry(token, {
+        prompt: 'Test prompt',
+        style: 'test',
+      });
 
       expect(response.status).toBe(201);
       expect(response.body.status).toBe('completed');
@@ -139,13 +160,10 @@ describe('POST /generations', () => {
       const { token } = await createUserAndGetToken();
 
       const startTime = Date.now();
-      const response = await request(app)
-        .post('/generations')
-        .set('Authorization', `Bearer ${token}`)
-        .send({
-          prompt: 'Test prompt',
-          style: 'test',
-        });
+      const response = await createGenerationWithRetry(token, {
+        prompt: 'Test prompt',
+        style: 'test',
+      });
       const endTime = Date.now();
 
       expect(response.status).toBe(201);
@@ -180,7 +198,7 @@ describe('POST /generations', () => {
       // At least one should have hit the error (statistically likely)
       // Note: This test may occasionally fail due to randomness, but it's acceptable
       expect(errorOccurred).toBe(true);
-    });
+    }, 30000); // Increase timeout to 30 seconds for 20 attempts
   });
 
   describe('Validation errors', () => {
@@ -293,13 +311,10 @@ describe('POST /generations', () => {
       const { token } = await createUserAndGetToken();
       const maxPrompt = 'a'.repeat(500);
 
-      const response = await request(app)
-        .post('/generations')
-        .set('Authorization', `Bearer ${token}`)
-        .send({
-          prompt: maxPrompt,
-          style: 'realistic',
-        });
+      const response = await createGenerationWithRetry(token, {
+        prompt: maxPrompt,
+        style: 'realistic',
+      });
 
       expect(response.status).toBe(201);
       expect(response.body.prompt).toBe(maxPrompt);
@@ -309,13 +324,10 @@ describe('POST /generations', () => {
       const { token } = await createUserAndGetToken();
       const maxStyle = 'a'.repeat(100);
 
-      const response = await request(app)
-        .post('/generations')
-        .set('Authorization', `Bearer ${token}`)
-        .send({
-          prompt: 'A beautiful landscape',
-          style: maxStyle,
-        });
+      const response = await createGenerationWithRetry(token, {
+        prompt: 'A beautiful landscape',
+        style: maxStyle,
+      });
 
       expect(response.status).toBe(201);
       expect(response.body.style).toBe(maxStyle);
@@ -370,15 +382,12 @@ describe('GET /generations', () => {
     it('should return generations with default limit of 5', async () => {
       const { token } = await createUserAndGetToken();
 
-      // Create 7 generations
+      // Create 7 generations with retry logic
       for (let i = 0; i < 7; i++) {
-        await request(app)
-          .post('/generations')
-          .set('Authorization', `Bearer ${token}`)
-          .send({
-            prompt: `Generation ${i + 1}`,
-            style: 'realistic',
-          });
+        await createGenerationWithRetry(token, {
+          prompt: `Generation ${i + 1}`,
+          style: 'realistic',
+        });
       }
 
       const response = await request(app)
@@ -394,20 +403,17 @@ describe('GET /generations', () => {
       expect(response.body).toHaveProperty('count', 5);
       expect(Array.isArray(response.body.generations)).toBe(true);
       expect(response.body.generations).toHaveLength(5);
-    });
+    }, 30000); // Increase timeout for 7 generations with delays
 
     it('should respect limit query parameter', async () => {
       const { token } = await createUserAndGetToken();
 
-      // Create 10 generations
+      // Create 10 generations with retry logic
       for (let i = 0; i < 10; i++) {
-        await request(app)
-          .post('/generations')
-          .set('Authorization', `Bearer ${token}`)
-          .send({
-            prompt: `Generation ${i + 1}`,
-            style: 'realistic',
-          });
+        await createGenerationWithRetry(token, {
+          prompt: `Generation ${i + 1}`,
+          style: 'realistic',
+        });
       }
 
       const response = await request(app)
@@ -417,29 +423,23 @@ describe('GET /generations', () => {
       expect(response.status).toBe(200);
       expect(response.body.count).toBe(3);
       expect(response.body.generations).toHaveLength(3);
-    });
+    }, 40000); // Increase timeout for 10 generations with delays
 
     it('should return generations ordered by createdAt DESC', async () => {
       const { token } = await createUserAndGetToken();
 
       // Create generations with a small delay
-      const response1 = await request(app)
-        .post('/generations')
-        .set('Authorization', `Bearer ${token}`)
-        .send({
-          prompt: 'First generation',
-          style: 'realistic',
-        });
+      const response1 = await createGenerationWithRetry(token, {
+        prompt: 'First generation',
+        style: 'realistic',
+      });
 
       await new Promise(resolve => setTimeout(resolve, 10));
 
-      const response2 = await request(app)
-        .post('/generations')
-        .set('Authorization', `Bearer ${token}`)
-        .send({
-          prompt: 'Second generation',
-          style: 'artistic',
-        });
+      const response2 = await createGenerationWithRetry(token, {
+        prompt: 'Second generation',
+        style: 'artistic',
+      });
 
       const getResponse = await request(app)
         .get('/generations')
@@ -469,13 +469,10 @@ describe('GET /generations', () => {
     it('should return generation with all required fields', async () => {
       const { token } = await createUserAndGetToken();
 
-      await request(app)
-        .post('/generations')
-        .set('Authorization', `Bearer ${token}`)
-        .send({
-          prompt: 'Test generation',
-          style: 'test',
-        });
+      await createGenerationWithRetry(token, {
+        prompt: 'Test generation',
+        style: 'test',
+      });
 
       const response = await request(app)
         .get('/generations')
@@ -499,22 +496,16 @@ describe('GET /generations', () => {
       const { token: token2, userId: userId2 } = await createUserAndGetToken();
 
       // Create generation for user 1
-      await request(app)
-        .post('/generations')
-        .set('Authorization', `Bearer ${token1}`)
-        .send({
-          prompt: 'User 1 generation',
-          style: 'realistic',
-        });
+      await createGenerationWithRetry(token1, {
+        prompt: 'User 1 generation',
+        style: 'realistic',
+      });
 
       // Create generation for user 2
-      await request(app)
-        .post('/generations')
-        .set('Authorization', `Bearer ${token2}`)
-        .send({
-          prompt: 'User 2 generation',
-          style: 'artistic',
-        });
+      await createGenerationWithRetry(token2, {
+        prompt: 'User 2 generation',
+        style: 'artistic',
+      });
 
       // Get generations for user 1
       const response1 = await request(app)
@@ -586,15 +577,12 @@ describe('GET /generations', () => {
     it('should handle multiple generations correctly', async () => {
       const { token } = await createUserAndGetToken();
 
-      // Create 5 generations
+      // Create 5 generations with retry logic
       for (let i = 0; i < 5; i++) {
-        await request(app)
-          .post('/generations')
-          .set('Authorization', `Bearer ${token}`)
-          .send({
-            prompt: `Generation ${i + 1}`,
-            style: 'style',
-          });
+        await createGenerationWithRetry(token, {
+          prompt: `Generation ${i + 1}`,
+          style: 'style',
+        });
       }
 
       const response = await request(app)
@@ -604,26 +592,22 @@ describe('GET /generations', () => {
       expect(response.status).toBe(200);
       expect(response.body.count).toBe(5);
       expect(response.body.generations).toHaveLength(5);
-    });
+    }, 30000); // Increase timeout to 30 seconds for 5 generations with delays
 
     it('should return correct count in response', async () => {
       const { token } = await createUserAndGetToken();
 
-      await request(app)
-        .post('/generations')
-        .set('Authorization', `Bearer ${token}`)
-        .send({
-          prompt: 'Generation 1',
-          style: 'style1',
-        });
+      await createGenerationWithRetry(token, {
+        prompt: 'Generation 1',
+        style: 'style1',
+      });
 
-      await request(app)
-        .post('/generations')
-        .set('Authorization', `Bearer ${token}`)
-        .send({
-          prompt: 'Generation 2',
-          style: 'style2',
-        });
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      await createGenerationWithRetry(token, {
+        prompt: 'Generation 2',
+        style: 'style2',
+      });
 
       const response = await request(app)
         .get('/generations')

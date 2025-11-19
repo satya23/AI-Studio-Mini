@@ -4,10 +4,10 @@ import userEvent from '@testing-library/user-event';
 import { BrowserRouter } from 'react-router-dom';
 import Login from '../components/Login.js';
 import { AuthProvider } from '../contexts/AuthContext.js';
-import * as authService from '../services/auth.service.js';
+import * as authService from '../services/auth.js';
 
 // Mock the auth service
-vi.mock('../services/auth.service.js', () => ({
+vi.mock('../services/auth.js', () => ({
   authService: {
     login: vi.fn(),
     getCurrentUser: vi.fn(() => null),

@@ -66,7 +66,7 @@ AI-Studio-Mini/
 │   │   │   └── AuthContext.tsx
 │   │   ├── services/
 │   │   │   ├── api.ts
-│   │   │   └── auth.service.ts
+│   │   │   └── auth.ts
 │   │   ├── tests/     # Unit tests
 │   │   │   ├── Login.test.tsx
 │   │   │   ├── Signup.test.tsx
@@ -92,7 +92,6 @@ AI-Studio-Mini/
 ├── docker-compose.yml
 ├── playwright.config.ts
 ├── package.json      # Root package.json for E2E tests
-├── .eslintrc.json
 ├── .prettierrc
 ├── EVAL.md           # Implementation tracking
 └── README.md

@@ -3,10 +3,10 @@ import { render, screen } from '@testing-library/react';
 import { BrowserRouter, MemoryRouter } from 'react-router-dom';
 import ProtectedRoute from '../components/ProtectedRoute.js';
 import { AuthProvider } from '../contexts/AuthContext.js';
-import * as authService from '../services/auth.service.js';
+import * as authService from '../services/auth.js';
 
 // Mock the auth service
-vi.mock('../services/auth.service.js', () => ({
+vi.mock('../services/auth.js', () => ({
   authService: {
     signup: vi.fn(),
     login: vi.fn(),

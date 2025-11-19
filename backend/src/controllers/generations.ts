@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { GenerationService } from '../services/generation.service.js';
+import { GenerationService } from '../services/generation.js';
 import { CreateGenerationInput } from '../schemas/generation.schema.js';
 
 // Extend Request to include user ID from auth middleware
@@ -15,6 +15,12 @@ export const createGeneration = async (
     // Get userId from authenticated request (set by auth middleware)
     const userId = req.userId!; // Auth middleware ensures this exists
 
+    // 20% chance of model overloaded error
+    if (Math.random() < 0.2) {
+      res.status(503).json({ message: 'Model overloaded' });
+      return;
+    }
+
     const input: CreateGenerationInput = req.body;
     const generation = await GenerationService.create(userId, input);
 
@@ -29,11 +35,7 @@ export const createGeneration = async (
     });
   } catch (error) {
     if (error instanceof Error) {
-      if (error.message === 'Model overloaded') {
-        res.status(503).json({ message: 'Model overloaded' });
-      } else {
-        res.status(500).json({ message: error.message });
-      }
+      res.status(500).json({ message: error.message });
     } else {
       res.status(500).json({ message: 'Internal server error' });
     }

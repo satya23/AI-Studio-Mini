@@ -2,7 +2,7 @@ import { Router } from 'express';
 import {
   createGeneration,
   getGenerations,
-} from '../controllers/generations.controller.js';
+} from '../controllers/generations.js';
 import { validateRequest } from '../utils/validation.js';
 import { createGenerationSchema } from '../schemas/generation.schema.js';
 import { authenticateToken } from '../middleware/auth.middleware.js';

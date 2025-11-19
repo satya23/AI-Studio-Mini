@@ -1,5 +1,5 @@
 /// <reference types="jest" />
-import { AuthService } from '../src/services/auth.service.js';
+import { AuthService } from '../src/services/auth.js';
 import { UserModel } from '../src/models/user.model.js';
 import { clearDatabase } from '../src/db/database.js';
 import jwt from 'jsonwebtoken';
